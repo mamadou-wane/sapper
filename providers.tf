@@ -4,7 +4,7 @@ provider "aws" {
   default_tags {
     tags = {
       Environment = "Dev"
-      Project     = "MultiAZ-Web-App"
+      Project     = "sapper"
       ManagedBy   = "Terraform"
     }
   }
