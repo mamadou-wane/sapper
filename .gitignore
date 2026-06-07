@@ -22,3 +22,8 @@ override.tf.json
 # Ignore local CLI config files
 .terraformrc
 terraform.rc
+
+# Private spike/evidence artifacts
+SPIKE_NOTES.md
+fixtures/sample-finding-event.json
+*.zip
