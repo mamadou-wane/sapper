@@ -27,3 +27,6 @@ terraform.rc
 SPIKE_NOTES.md
 fixtures/sample-finding-event.json
 *.zip
+
+# JetBrains / PyCharm
+.idea/
