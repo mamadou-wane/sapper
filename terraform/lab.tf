@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "lab" {
-  bucket="sapper-lab-public-116137268889"
+  bucket = "sapper-lab-public-116137268889"
 }
 
 resource "aws_s3_bucket_public_access_block" "lab" {
