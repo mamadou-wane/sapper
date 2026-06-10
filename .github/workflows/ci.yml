@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Terraform formatting
+        run: terraform -chdir=terraform fmt -check -recursive
+
+      - name: Initialize Terraform without backend
+        run: terraform -chdir=terraform init -backend=false
+
+      - name: Validate Terraform
+        run: terraform -chdir=terraform validate
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform
+
