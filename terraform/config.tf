@@ -136,6 +136,7 @@ resource "aws_s3_bucket_policy" "config_delivery" {
 
 resource "aws_config_configuration_recorder" "main" {
   #checkov:skip=CKV2_AWS_45: Phase 1 intentionally scopes AWS Config to S3 buckets and EC2 security groups as a cost guard
+  #checkov:skip=CKV2_AWS_48: Phase 1 intentionally avoids recording all resources; this lab records only target resource types
 
   name     = "sapper-config-recorder"
   role_arn = aws_iam_role.config.arn
@@ -161,6 +162,8 @@ resource "aws_config_delivery_channel" "main" {
 }
 
 resource "aws_config_configuration_recorder_status" "main" {
+  #checkov:skip=CKV2_AWS_45: Phase 1 intentionally enables a scoped AWS Config recorder instead of all supported resources
+
   name       = aws_config_configuration_recorder.main.name
   is_enabled = true
 
