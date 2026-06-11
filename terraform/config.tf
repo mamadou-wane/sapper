@@ -104,3 +104,36 @@ resource "aws_s3_bucket_policy" "config_delivery" {
   bucket = aws_s3_bucket.config_delivery.id
   policy = data.aws_iam_policy_document.config_delivery.json
 }
+
+resource "aws_config_configuration_recorder" "main" {
+  name     = "sapper-config-recorder"
+  role_arn = aws_iam_role.config.arn
+
+  recording_group {
+    all_supported                 = false
+    include_global_resource_types = false
+    resource_types = [
+      "AWS::S3::Bucket",
+      "AWS::EC2::SecurityGroup",
+    ]
+  }
+}
+
+resource "aws_config_delivery_channel" "main" {
+  name           = "sapper-config-delivery-channel"
+  s3_bucket_name = aws_s3_bucket.config_delivery.bucket
+
+  depends_on = [
+    aws_config_configuration_recorder.main,
+    aws_s3_bucket_policy.config_delivery
+  ]
+}
+
+resource "aws_config_configuration_recorder_status" "main" {
+  name       = aws_config_configuration_recorder.main.name
+  is_enabled = true
+
+  depends_on = [
+    aws_config_delivery_channel.main
+  ]
+}
