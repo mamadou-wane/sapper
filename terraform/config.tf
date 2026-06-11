@@ -47,3 +47,60 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "config_delivery" 
     }
   }
 }
+
+data "aws_iam_policy_document" "config_delivery" {
+  statement {
+    sid    = "AWSConfigBucketPermissionsCheck"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+
+    actions = ["s3:GetBucketAcl"]
+
+    resources = [
+      aws_s3_bucket.config_delivery.arn
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = ["116137268889"]
+    }
+  }
+
+  statement {
+    sid    = "AWSConfigBucketDelivery"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+
+    actions = ["s3:PutObject"]
+
+    resources = [
+      "${aws_s3_bucket.config_delivery.arn}/AWSLogs/116137268889/Config/*"
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = ["116137268889"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "config_delivery" {
+  bucket = aws_s3_bucket.config_delivery.id
+  policy = data.aws_iam_policy_document.config_delivery.json
+}
