@@ -27,5 +27,5 @@ jobs:
         uses: bridgecrewio/checkov-action@master
         with:
           directory: terraform
+          # Bootstrap creates the remote-state foundation and is excluded from the lab runtime guardrail scan.
           skip_path: terraform/bootstrap
-          skip_check: CKV_AWS_144,CKV_AWS_145,CKV2_AWS_62,CKV_AWS_18,CKV_AWS_21,CKV2_AWS_61,CKV2_AWS_45,CKV2_AWS_48
