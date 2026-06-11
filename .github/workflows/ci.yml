@@ -23,9 +23,8 @@ jobs:
       - name: Validate Terraform
         run: terraform -chdir=terraform validate
 
+      - name: Install Checkov
+        run: pipx install checkov==3.2.530
+
       - name: Run Checkov
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: terraform
-          # Bootstrap creates the remote-state foundation and is excluded from the lab runtime guardrail scan.
-          skip_path: terraform/bootstrap
+        run: checkov -d terraform --skip-path terraform/bootstrap

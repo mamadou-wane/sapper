@@ -24,8 +24,8 @@ resource "aws_s3_bucket" "config_delivery" {
   #checkov:skip=CKV_AWS_144: single-region lab delivery bucket; cross-region replication is out of scope for Phase 1
   #checkov:skip=CKV_AWS_145: lab delivery bucket uses SSE-S3; KMS adds cost without Phase 1 threat-model benefit
   #checkov:skip=CKV_AWS_18: access logging deferred for lab delivery bucket; bucket policy, BPA, and encryption are the controls here
-  #checkov:skip=CKV_AWS_21: Config delivery bucket is ephemeral lab output and force-destroyed by Terraform
-  #checkov:skip=CKV2_AWS_61: lifecycle policy deferred; Config delivery bucket is temporary Phase 1 lab evidence output
+  #checkov:skip=CKV_AWS_21: Config delivery bucket is ephemeral AWS Config delivery output and force-destroyed by Terraform
+  #checkov:skip=CKV2_AWS_61: lifecycle policy deferred; Config delivery bucket stores temporary AWS Config delivery output for Phase 1
   #checkov:skip=CKV2_AWS_62: Event notifications are out of scope for the AWS Config delivery bucket
 
   bucket        = "sapper-config-delivery-116137268889"
@@ -79,6 +79,28 @@ data "aws_iam_policy_document" "config_delivery" {
   }
 
   statement {
+    sid    = "AWSConfigBucketExistenceCheck"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+
+    actions = ["s3:ListBucket"]
+
+    resources = [
+      aws_s3_bucket.config_delivery.arn
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = ["116137268889"]
+    }
+  }
+
+  statement {
     sid    = "AWSConfigBucketDelivery"
     effect = "Allow"
 
@@ -114,7 +136,6 @@ resource "aws_s3_bucket_policy" "config_delivery" {
 
 resource "aws_config_configuration_recorder" "main" {
   #checkov:skip=CKV2_AWS_45: Phase 1 intentionally scopes AWS Config to S3 buckets and EC2 security groups as a cost guard
-  #checkov:skip=CKV2_AWS_48: Phase 1 intentionally avoids recording all resources; this lab records only target resource types
 
   name     = "sapper-config-recorder"
   role_arn = aws_iam_role.config.arn
