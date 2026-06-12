@@ -1,0 +1,41 @@
+# ADR-0002: Use inline, resource-scoped Checkov suppressions
+
+Status: Accepted
+Date: 2026-06-11
+Related runbook: `docs/aws-config-runbook.md`
+
+## Context
+
+CI runs Checkov against `terraform/` on every push. After T4 added the AWS Config substrate, the gate failed on controls that are out of scope for the Phase 1 lab: six S3 controls on the Config delivery bucket and the lab target bucket (CKV_AWS_18 access logging, CKV_AWS_21 versioning, CKV_AWS_144 cross-region replication, CKV_AWS_145 KMS encryption, CKV2_AWS_61 lifecycle policy, CKV2_AWS_62 event notifications), and the recorder-scope graph controls CKV2_AWS_45 and CKV2_AWS_48 on the recorder and its status resource.
+
+The flagged resources are out of scope by design. The delivery bucket holds temporary AWS Config output and is force-destroyed at teardown. The target bucket is a minimal detection target holding no durable data. The recorder is scoped to two resource types as the Phase 1 cost guard.
+
+The first fix was a global `skip_check` list in `.github/workflows/ci.yml`. CI went green. The list applies to every resource in the repository, current and future, and the planned evidence bucket (specified in `BUILD_PLAN.md` as versioned, SSE, Block Public Access) needs several of the controls being skipped. The workflow also ran Checkov through the mutable `bridgecrewio/checkov-action@master` tag, so the rule set could change between runs with no change in the repo. Phase 1 puts more resources behind this gate (the evidence bucket, IAM roles, EventBridge, the Lambda), so the exemption mechanism had to be settled now.
+
+## Decision
+
+Suppressions are declared inline on the exact Terraform resource they apply to, each with a written reason:
+
+```
+#checkov:skip=<CHECK_ID>: <reason>
+```
+
+The global `skip_check` list is removed. The workflow installs a pinned Checkov CLI (`pipx install checkov==3.2.530`) in place of the mutable action tag and runs `checkov -d terraform --skip-path terraform/bootstrap`. The single path exclusion covers `terraform/bootstrap`, which creates the remote-state foundation and sits outside the runtime lab guardrail surface.
+
+A suppression is acceptable only when all four hold: it is tied to one specific resource, it carries a written reason, the reason matches the project threat model, and it leaves the scanner active for future resources.
+
+## Options considered
+
+- Option A: bring the lab resources into compliance. Pros: no suppressions; clean gate output. Cons: versioning, replication, KMS, access logging, and lifecycle rules on buckets that hold temporary or demonstration data add cost and Terraform surface while protecting nothing; recording all Config resource types breaks the Phase 1 cost guard. Rejected: these controls protect durable data, and these resources hold none.
+
+- Option B: global `skip_check` list in the workflow (tried first). Pros: a one-line change; CI green immediately. Cons: exempts every resource in the repository from the listed checks, with no reason attached anywhere; the evidence bucket would silently inherit waivers for the exact controls it must pass. Rejected after one iteration: the gate could no longer fail on those checks, which is the same as having no gate for them.
+
+- Option C: inline, resource-scoped suppressions with a pinned CLI (chosen). Pros: the gate keeps evaluating everything built after this; each exemption sits in the diff next to the resource it excuses, with its reason, where review can challenge it; scan results are deterministic between runs. Cons: skip comments add noise, and the six S3 lines repeat on both lab buckets; reasons can go stale; new Checkov checks arrive only with a deliberate version bump.
+
+## Consequences
+
+The gate stays active for Phase 1 and beyond. The evidence bucket will be evaluated against versioning, encryption, logging, and lifecycle controls, which matches its build spec. Every future exemption is a visible, reasoned diff line judged against the four-condition test.
+
+What gets worse: the lab resources carry suppression comments, duplicated across the two buckets because each exemption must sit on its own resource. Suppressions can rot; if a resource's purpose changes (a bucket starts holding durable data), nothing automated flags the stale skips, so catching that is a code-review job. Pinning trades freshness for determinism: the gate's coverage ages between version bumps, and bumping Checkov is now a deliberate, owned change. The `terraform/bootstrap` exclusion remains a blanket exemption, so that directory must stay limited to the remote-state foundation or it becomes the next blind spot.
+
+We are now committed to: a written reason on every suppression, judged against the four conditions; shipping the evidence bucket compliant rather than suppressed; and treating Checkov version bumps as explicit changes with their own review.
