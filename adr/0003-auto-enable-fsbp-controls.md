@@ -1,7 +1,9 @@
 # ADR-0003: Auto-enable new FSBP controls inside a pinned standard subscription
 
-Status: Proposed
+Status: Accepted
 Date: 2026-06-12
+
+Related runbook: docs/securityhub-fsbp-runbook.md
 
 ## Context
 
@@ -26,4 +28,5 @@ The asymmetry with ADR-0002 is the point. The CI gate blocks code: a ruleset tha
 
 Better: the detective posture tracks AWS's coverage on AWS's cadence; the runtime contract is unmoved by any widening, because the allowlist, never the detector, decides what the proposer sees; and the scoped recorder caps both the evaluation surface and the Config cost of each new control.
 
-Worse, and now committed to: the repo alone no longer answers "which controls are enabled," the account does, which costs reproducibility-from-code for this one setting. New FAILED findings on lab resources outside the two scenarios are expected console noise, and reviewing newly enabled controls becomes a periodic chore. Cost can creep one check at a time, with the $20/month budget alarm as the backstop. Any control disabled for noise is filed as an explicit `aws_securityhub_standards_control` with its `disabled_reason` (Terraform Registry, checked 2026-06-12), so every exception carries its rationale in code. And widening the runtime allowlist stays a deliberate change with its own record, never a side effect of detection growing.
+Worse, and now committed to: the repo alone no longer answers "which controls are enabled," the account does, which costs reproducibility-from-code for this one setting. New FAILED findings on lab resources outside the two scenarios are expected console noise. Newly enabled controls are reviewed at the quarterly CSPM-contract re-verification the blueprint already mandates, so the chore has a calendar, and an untriggered commitment is the kind that rots. Cost can creep one check at a time, with the $20/month budget alarm as the backstop. Any control disabled for noise is filed as an explicit `aws_securityhub_standards_control` with its `disabled_reason` (Terraform Registry, checked 2026-06-12), so every exception carries its rationale in code. And widening the runtime allowlist stays a deliberate change with its own record, never a side effect of detection growing. Last, the switch lives on the account resource and binds every enabled standard, current and future. FSBP is the only subscription today, so the difference is invisible; the day a second standard is added, its new controls auto-enable under this same decision, which makes adding a standard a reason to re-read this ADR.
+

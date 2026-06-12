@@ -10,9 +10,10 @@ Cloud incidents are rarely exotic. They are public buckets, open ports, and leak
 
 In active development. Built and verified so far:
 
-- **Phase 0 de-risking, complete.** The live Security Hub contract confirmed (CSPM classic, ASFF), the control IDs observed for both lab scenarios (S3.8, EC2.18/19), finding latency recorded, a finding-triggered EventBridge event captured as a fixture, and a $20/month budget guardrail set before any billing service went live. The record is [`SPIKE_NOTES.md`](./SPIKE_NOTES.md).
-- **The Phase 1 Terraform foundation.** Remote state on S3 with native locking configured, a pinned provider, uniform default tags, and a compliant lab bucket, all defined in code. The first deploy, with the detective services and the state-lock demonstration, lands this week.
-- **The CI gate.** terraform fmt, offline init/validate, and Checkov on every push, with no AWS credentials or backend access in CI, proven by a deliberate failing push restored to green.
+- **Phase 0 de-risking, complete.** The live Security Hub contract confirmed (CSPM classic, ASFF), real control IDs recorded for both lab scenarios (S3.8, EC2.18/19), finding latency recorded, a real finding-triggered EventBridge event captured as a fixture, and a $20/month budget guardrail set before any billing service went live. The record is [`SPIKE_NOTES.md`](./SPIKE_NOTES.md).
+- **The Phase 1 Terraform foundation, applied.** Remote state on S3 with native locking in use, a pinned provider, uniform default tags, and the lab target bucket deployed in a compliant state, all defined in code.
+- **The AWS Config substrate, live.** Deployed under Terraform and recording, scoped to exactly the two Phase 1 resource types (S3 buckets and security groups) as the cost guard, with object delivery to a hardened delivery bucket proven. Security Hub with FSBP, also Terraform-managed, is next.
+- **The CI gate.** terraform fmt, offline init/validate, and a pinned Checkov on every push, with no AWS credentials or backend access in CI, proven by a deliberate failing push restored to green. Suppressions are inline and resource-scoped, each with a written reason (ADR-0002), so the gate stays active for everything built next.
 
 Everything else on this page is the design, sequenced in [`BUILD_PLAN.md`](./BUILD_PLAN.md).
 
@@ -28,12 +29,12 @@ The runtime layer handles what gets past the pipeline, after deploy. For the mis
 
 ## Architecture
 
-Shift-left (CI). This is the target state; the live gate today is fmt, validate, and Checkov with zero AWS access (see Status):
+Shift-left (CI), the target state; today's live gate is fmt, validate, and a pinned Checkov with zero AWS access (see Status):
 
 ```
 commit  (Gitleaks runs locally via pre-commit for fast feedback)
   └─ GitHub Actions  (OIDC → least-privilege AWS role · Phase 2; CI currently holds no AWS credentials)
-       ├─ Gitleaks: secret scanning (server-side, the enforcement gate)
+       ├─ Gitleaks: secret scanning (server-side, the real enforcement gate)
        ├─ TFLint: Terraform linting
        ├─ Checkov: Terraform security scanning
        └─ OPA/Conftest: organization-specific policy-as-code  (planned · v1.1)
@@ -72,11 +73,11 @@ A few choices carry this project; full rationale is in [`BLUEPRINT.md`](./BLUEPR
 - The remediation role's blast radius is bounded, and the bound is demonstrated three times. The role can perform only the two scoped, reversible actions, capped by a permissions boundary, with tag-write denied so its scope can't be widened by a retag. The S3 action is scoped by explicit bucket ARN (S3 bucket-level tag authorization needs per-bucket ABAC, so an ARN scope is the dependable choice); the SG action is scoped to the lab security group(s). Three negative IAM tests (`make verify-boundary`) prove the three boundary claims: the remediation role attempting a forbidden action, the proposer attempting a mutation, and the proposer attempting an approval write. Each captured `AccessDenied` is committed as evidence, which turns the bounds from written claims into demonstrated ones.
 - The human gate can't be forged. The proposer writes only a proposal record; the approval record is writable only by the human principal (enforced by bucket policy) and is create-only, made immutable once written by an S3 conditional-write condition in that policy. It is bound to the finding, the resource, and a hash of the dry-run plan, so a compromised proposer can't approve itself and a stale approval can't authorize a different change. Provenance is enforced by policy and verified at apply time by the binding.
 - Failures leave evidence too. A handler failure exhausts its retries into a dead-letter queue and trips an alarm rather than vanishing, and the evidence store is versioned with deletes denied to the runtime roles, so neither a crash nor a compromised proposer can quietly lose a finding or rewrite history.
-- Evidence-first, and adversarial. Every workflow produces an artifact. The guardrails are proven by making them fail on purpose: a planted secret blocked, insecure Terraform rejected. A clean pass proves nothing on its own. One blind spot the scanners miss is documented honestly, and at least one Security Hub finding runs the full path end-to-end, from the production source to committed evidence.
+- Evidence-first, and adversarial. Every workflow produces an artifact. The guardrails are proven by making them fail on purpose: a planted secret blocked, insecure Terraform rejected. A clean pass proves nothing on its own. One blind spot the scanners miss is documented honestly, and at least one real Security Hub finding is run end-to-end so the runtime path is demonstrated on real input.
 
 ## Results
 
-_Populated from measured runs as phases land. The safe-failure row is the project's one documented engineering improvement: a baseline captured before hardening, re-measured after, against a failure-mode set pre-registered in [`EVIDENCE.md`](./EVIDENCE.md)._
+_Populated from real runs as phases land. The safe-failure row is the project's one documented engineering improvement: a baseline captured before hardening, re-measured after, against a failure-mode set pre-registered in [`EVIDENCE.md`](./EVIDENCE.md)._
 
 | Measure | Value |
 |---|---|
@@ -111,11 +112,11 @@ make destroy          # tear down lab resources AND disable the detective servic
 **Prerequisites:** an AWS account with SSO and Terraform; the GitHub OIDC role arrives with Phase 2.
 **Cost:** runs on AWS Free Tier where possible; Security Hub and Config bill continuously while enabled, so `make destroy` turns them off. See [`COST.md`](./COST.md).
 
-> `make demo` runs that whole flow, detect → propose → approve → remediate → verify, against a representative event for speed, so a reviewer sees a finding gated and remediated in one command. Security Hub findings can take minutes to hours to appear, and a synthetic event can't impersonate the production source (`PutEvents` cannot publish events with an `aws.*` source; AWS reserves that prefix). So the demo enters through a demo-only twin EventBridge rule on a custom source (`sapper.demo`), carrying the identical payload to the identical handler. Every evidence record is labeled REAL or DEMO, the measured finding latency is documented, and at least one finding from the production source is banked end-to-end as evidence that the path works. Reviewers who won't stand up their own account can follow the recording and the committed evidence artifacts.
+> `make demo` runs that whole flow, detect → propose → approve → remediate → verify, against a representative event for speed, so a reviewer sees a finding gated and remediated in one command. Real Security Hub findings can take minutes to hours to appear, and a synthetic event can't impersonate the real source (`PutEvents` cannot publish events with an `aws.*` source; AWS reserves that prefix). So the demo enters through a demo-only twin EventBridge rule on a custom source (`sapper.demo`), carrying the identical payload to the identical handler. Every evidence record is labeled REAL or DEMO, the measured real-finding latency is documented, and at least one fully real finding is banked end-to-end as evidence that the production-source path works. Reviewers who won't stand up their own account can follow the recording and the committed evidence artifacts.
 
 ## Threat model and limitations
 
-This is a single-account lab, well short of a production system. It runs in a dedicated lab account: the account ID and bucket names are visible in code and evidence by design. They are identifiers rather than credentials, and treating them as such is part of the model. The runtime layer exists because prevention is never complete: resources drift via clickops, emergencies, and out-of-band changes. The threat model treats four runtime escalation paths as first-class: approval forgery, evidence tampering (a compromised proposer rewriting its own history), scope-widening by retag, and the remediation running as admin instead of the bounded role, each closed by design. One honest scope note: the bounded-blast-radius property is a property of the remediation function's *identity*; the account, operated by an admin SSO identity, is the wider trust boundary. Full model in [`THREAT_MODEL.md`](./THREAT_MODEL.md); the honest distance to production is in [`PRODUCTION_GAP.md`](./PRODUCTION_GAP.md).
+This is a single-account lab, well short of a production system. It runs in a dedicated lab account: the account ID and bucket names are visible in code and evidence by design; they carry no secret value, and the model treats them as plain identifiers. The runtime layer exists because prevention is never complete: resources drift via clickops, emergencies, and out-of-band changes. The threat model treats four runtime escalation paths as first-class: approval forgery, evidence tampering (a compromised proposer rewriting its own history), scope-widening by retag, and the remediation running as admin instead of the bounded role, each closed by design. One honest scope note: the bounded-blast-radius property is a property of the remediation function's *identity*; the account, operated by an admin SSO identity, is the wider trust boundary. Full model in [`THREAT_MODEL.md`](./THREAT_MODEL.md); the honest distance to production is in [`PRODUCTION_GAP.md`](./PRODUCTION_GAP.md).
 
 ## What I'd do next
 
