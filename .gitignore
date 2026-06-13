@@ -51,3 +51,4 @@ override.tf.json
 *.pem
 *.key
 .DS_Store
+.venv-checkov312/

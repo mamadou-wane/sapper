@@ -14,6 +14,11 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v4
 
+      - name: Set up Python for Checkov
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Check Terraform formatting
         run: terraform -chdir=terraform fmt -check -recursive
 
@@ -24,9 +29,13 @@ jobs:
         run: terraform -chdir=terraform validate
 
       - name: Install Checkov
-        run: pipx install checkov==3.2.530
+        run: |
+          python3.12 --version
+          pipx install --python python3.12 checkov==3.2.530
 
       - name: Run Checkov
         run: |
           # Bootstrap creates the remote-state foundation and is excluded from the lab runtime guardrail scan.
+          which checkov
+          checkov --version
           checkov -d terraform --skip-path terraform/bootstrap
