@@ -24,6 +24,14 @@ The global `skip_check` list is removed. The workflow installs a pinned Checkov 
 
 A suppression is acceptable only when all four hold: it is tied to one specific resource, it carries a written reason, the reason matches the project threat model, and it leaves the scanner active for future resources.
 
+### Addendum, 2026-06-12: the interpreter is part of the pin
+
+A pinned Checkov version is necessary but not enough for a reproducible scan. The same `checkov==3.2.530` gives different results across Python interpreters. Under 3.14 the graph framework fails to load and the scan silently degrades to 26 passed / 0 skipped with no warning; under 3.12 it runs fully, 37 passed / 14 skipped, every suppression honored. CI was correct throughout, because the runner image ships 3.12. The degraded path was the local pre-apply check, where the graph-level controls (the `CKV2_*` checks, which include the recorder-scope suppressions this ADR turns on) were the ones that vanished.
+
+Invariant: local scans run under Python 3.12 to match CI, and parity is confirmed by the summary line matching, not the version string alone. A green result with `Skipped checks: 0` is the tell that the graph framework didn't load, since this repo has standing suppressions; that anomaly is what surfaced the gap, not an error message.
+
+Annotation count: 15 suppressions are filed, 14 consumed. The second `CKV2_AWS_45` on the recorder-status resource is dormant by design and kept deliberately, so the expected steady-state is 14 skipped, and a run reporting 15 or 13 is itself a signal.
+
 ## Options considered
 
 - Option A: bring the lab resources into compliance. Pros: no suppressions; clean gate output. Cons: versioning, replication, KMS, access logging, and lifecycle rules on buckets that hold temporary or demonstration data add cost and Terraform surface while protecting nothing; recording all Config resource types breaks the Phase 1 cost guard. Rejected: these controls protect durable data, and these resources hold none.
@@ -39,3 +47,4 @@ The gate stays active for Phase 1 and beyond. The evidence bucket will be evalua
 What gets worse: the lab resources carry suppression comments, duplicated across the two buckets because each exemption must sit on its own resource. Suppressions can rot; if a resource's purpose changes (a bucket starts holding durable data), nothing automated flags the stale skips, so catching that is a code-review job. Pinning trades freshness for determinism: the gate's coverage ages between version bumps, and bumping Checkov is now a deliberate, owned change. The `terraform/bootstrap` exclusion remains a blanket exemption, so that directory must stay limited to the remote-state foundation or it becomes the next blind spot.
 
 We are now committed to: a written reason on every suppression, judged against the four conditions; shipping the evidence bucket compliant rather than suppressed; and treating Checkov version bumps as explicit changes with their own review.
+
