@@ -1,0 +1,170 @@
+{
+    "Findings": [
+        {
+            "SchemaVersion": "2018-10-08",
+            "Id": "arn:aws:securityhub:us-east-1:116137268889:security-control/S3.8/finding/018f9edd-6080-4bdc-934b-e74a4ef9546f",
+            "ProductArn": "arn:aws:securityhub:us-east-1::product/aws/securityhub",
+            "ProductName": "Security Hub",
+            "CompanyName": "AWS",
+            "Region": "us-east-1",
+            "GeneratorId": "security-control/S3.8",
+            "AwsAccountId": "116137268889",
+            "Types": [
+                "Software and Configuration Checks/Industry and Regulatory Standards"
+            ],
+            "FirstObservedAt": "2026-06-13T20:12:23.144Z",
+            "LastObservedAt": "2026-06-13T20:12:23.144Z",
+            "CreatedAt": "2026-06-12T20:05:26.843Z",
+            "UpdatedAt": "2026-06-15T06:20:16.611Z",
+            "Severity": {
+                "Label": "HIGH",
+                "Normalized": 70,
+                "Original": "HIGH"
+            },
+            "Title": "S3 general purpose buckets should block public access",
+            "Description": "This control checks whether an Amazon S3 general purpose bucket blocks public access at the bucket level. The control fails if any of the following settings are set to false: ignorePublicAcls, blockPublicPolicy, blockPublicAcls, restrictPublicBuckets.",
+            "Remediation": {
+                "Recommendation": {
+                    "Text": "For information on how to correct this issue, consult the AWS Security Hub controls documentation.",
+                    "Url": "https://docs.aws.amazon.com/console/securityhub/S3.8/remediation"
+                }
+            },
+            "ProductFields": {
+                "RelatedAWSResources:0/name": "securityhub-s3-bucket-level-public-access-prohibited-86efc127",
+                "RelatedAWSResources:0/type": "AWS::Config::ConfigRule",
+                "aws/securityhub/ProductName": "Security Hub",
+                "aws/securityhub/CompanyName": "AWS",
+                "aws/securityhub/annotation": "PublicAccessBlockConfigurations are incorrect for block_public_acls: false ignore_public_acls: false block_public_policy: false restrict_public_buckets false",
+                "Resources:0/Id": "arn:aws:s3:::sapper-lab-public-116137268889",
+                "aws/securityhub/FindingId": "arn:aws:securityhub:us-east-1::product/aws/securityhub/arn:aws:securityhub:us-east-1:116137268889:security-control/S3.8/finding/018f9edd-6080-4bdc-934b-e74a4ef9546f",
+                "PreviousComplianceStatus": "FAILED"
+            },
+            "Resources": [
+                {
+                    "Type": "AwsS3Bucket",
+                    "Id": "arn:aws:s3:::sapper-lab-public-116137268889",
+                    "Partition": "aws",
+                    "Region": "us-east-1",
+                    "Tags": {
+                        "Project": "sapper",
+                        "Environment": "lab"
+                    },
+                    "Details": {
+                        "AwsS3Bucket": {
+                            "OwnerId": "f664f4d6d0e6a805857fc9fab3f6c8376e340e44c863a77b6fcdc9edcbb2e0fa",
+                            "CreatedAt": "2026-06-10T20:01:57.000Z",
+                            "Name": "sapper-lab-public-116137268889"
+                        }
+                    }
+                }
+            ],
+            "Compliance": {
+                "Status": "FAILED",
+                "SecurityControlId": "S3.8",
+                "AssociatedStandards": [
+                    {
+                        "StandardsId": "standards/aws-foundational-security-best-practices/v/1.0.0"
+                    }
+                ]
+            },
+            "WorkflowState": "NEW",
+            "Workflow": {
+                "Status": "NEW"
+            },
+            "RecordState": "ACTIVE",
+            "FindingProviderFields": {
+                "Severity": {
+                    "Label": "HIGH",
+                    "Original": "HIGH"
+                },
+                "Types": [
+                    "Software and Configuration Checks/Industry and Regulatory Standards"
+                ]
+            },
+            "ProcessedAt": "2026-06-15T06:20:25.713Z"
+        },
+        {
+            "SchemaVersion": "2018-10-08",
+            "Id": "arn:aws:securityhub:us-east-1:116137268889:security-control/S3.8/finding/ece9fa06-854f-4f90-8c15-4775bde84ae0",
+            "ProductArn": "arn:aws:securityhub:us-east-1::product/aws/securityhub",
+            "ProductName": "Security Hub",
+            "CompanyName": "AWS",
+            "Region": "us-east-1",
+            "GeneratorId": "security-control/S3.8",
+            "AwsAccountId": "116137268889",
+            "Types": [
+                "Software and Configuration Checks/Industry and Regulatory Standards"
+            ],
+            "FirstObservedAt": "2026-06-07T15:59:10.217Z",
+            "LastObservedAt": "2026-06-07T15:59:10.217Z",
+            "CreatedAt": "2026-06-07T15:42:05.597Z",
+            "UpdatedAt": "2026-06-07T16:00:02.814Z",
+            "Severity": {
+                "Label": "HIGH",
+                "Normalized": 70,
+                "Original": "HIGH"
+            },
+            "Title": "S3 general purpose buckets should block public access",
+            "Description": "This control checks whether an Amazon S3 general purpose bucket blocks public access at the bucket level. The control fails if any of the following settings are set to false: ignorePublicAcls, blockPublicPolicy, blockPublicAcls, restrictPublicBuckets.",
+            "Remediation": {
+                "Recommendation": {
+                    "Text": "For information on how to correct this issue, consult the AWS Security Hub controls documentation.",
+                    "Url": "https://docs.aws.amazon.com/console/securityhub/S3.8/remediation"
+                }
+            },
+            "ProductFields": {
+                "RelatedAWSResources:0/name": "securityhub-s3-bucket-level-public-access-prohibited-80e52006",
+                "RelatedAWSResources:0/type": "AWS::Config::ConfigRule",
+                "aws/securityhub/ProductName": "Security Hub",
+                "aws/securityhub/CompanyName": "AWS",
+                "aws/securityhub/annotation": "PublicAccessBlockConfiguration block is missing",
+                "Resources:0/Id": "arn:aws:s3:::sapper-lab-public-116137268889",
+                "aws/securityhub/FindingId": "arn:aws:securityhub:us-east-1::product/aws/securityhub/arn:aws:securityhub:us-east-1:116137268889:security-control/S3.8/finding/ece9fa06-854f-4f90-8c15-4775bde84ae0",
+                "PreviousComplianceStatus": "PASSED"
+            },
+            "Resources": [
+                {
+                    "Type": "AwsS3Bucket",
+                    "Id": "arn:aws:s3:::sapper-lab-public-116137268889",
+                    "Partition": "aws",
+                    "Region": "us-east-1",
+                    "Tags": {
+                        "Project": "sapper",
+                        "Environment": "lab"
+                    },
+                    "Details": {
+                        "AwsS3Bucket": {
+                            "OwnerId": "f664f4d6d0e6a805857fc9fab3f6c8376e340e44c863a77b6fcdc9edcbb2e0fa",
+                            "CreatedAt": "2026-06-07T15:38:55.000Z",
+                            "Name": "sapper-lab-public-116137268889"
+                        }
+                    }
+                }
+            ],
+            "Compliance": {
+                "Status": "FAILED",
+                "SecurityControlId": "S3.8",
+                "AssociatedStandards": [
+                    {
+                        "StandardsId": "standards/aws-foundational-security-best-practices/v/1.0.0"
+                    }
+                ]
+            },
+            "WorkflowState": "NEW",
+            "Workflow": {
+                "Status": "NEW"
+            },
+            "RecordState": "ACTIVE",
+            "FindingProviderFields": {
+                "Severity": {
+                    "Label": "HIGH",
+                    "Original": "HIGH"
+                },
+                "Types": [
+                    "Software and Configuration Checks/Industry and Regulatory Standards"
+                ]
+            },
+            "ProcessedAt": "2026-06-07T16:00:28.230Z"
+        }
+    ]
+}
