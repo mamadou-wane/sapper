@@ -1,134 +1,69 @@
 # sapper
 
-> Blocks unsafe cloud infrastructure in code, detects the misconfigurations that drift in after deploy, and remediates a narrow, reversible set only after human approval, with evidence for every action.
+> Blocks unsafe cloud infrastructure in code, detects misconfigurations that drift in after deploy, and only remediates a narrow, reversible set after human approval, with evidence for every action.
 
-Cloud incidents are rarely exotic. They are public buckets, open ports, and leaked keys, introduced either by code that should have been blocked or by changes made outside the pipeline. sapper closes both gaps under one principle: *think, but never act blindly*. The pipeline blocks what it can catch, the runtime detects what slips past, and nothing mutates a resource without a human approval bound to the exact change. Every action leaves evidence, including the denied and failed ones.
+Public buckets, open security groups, and leaked keys usually come from code that should have been blocked or changes made outside the pipeline. sapper closes both gaps. The CI gate blocks what it can catch upfront. The runtime detects what slips past. Nothing mutates a resource without a human approving the exact change, and every step leaves evidence.
 
-> The name: a sapper is a combat engineer who clears hazards and breaches obstacles, and knows which ones are too dangerous to touch without care. "Blast radius" is the through-line.
+A sapper is a combat engineer who clears hazards and breaches obstacles, but knows which ones are too dangerous to touch without care.
 
-## Status
+## Current Status
 
-In active development. Built and verified so far:
+**Release 1 (Security Core) is in active development.** The foundation is built and verified.
 
-- **Phase 0 de-risking, complete.** The live Security Hub contract confirmed (CSPM classic, ASFF), real control IDs recorded for both lab scenarios (S3.8, EC2.18/19), finding latency recorded, a real finding-triggered EventBridge event captured as a fixture, and a $20/month budget guardrail set before any billing service went live. The record is [`SPIKE_NOTES.md`](./SPIKE_NOTES.md).
-- **The Phase 1 Terraform foundation, applied.** Remote state on S3 with native locking in use, a pinned provider, uniform default tags, and the lab target bucket deployed in a compliant state, all defined in code.
-- **The AWS Config substrate, live.** Deployed under Terraform and recording, scoped to exactly the two Phase 1 resource types (S3 buckets and security groups) as the cost guard, with object delivery to a hardened delivery bucket proven. Security Hub with FSBP, also Terraform-managed, is next.
-- **The CI gate.** terraform fmt, offline init/validate, and a pinned Checkov on every push, with no AWS credentials or backend access in CI, proven by a deliberate failing push restored to green. Suppressions are inline and resource-scoped, each with a written reason (ADR-0002), so the gate stays active for everything built next.
+- De-risked the live Security Hub contract with real findings (S3.8/S3.9 for public buckets, EC2.18/EC2.19 for open security groups).
+- Built the detective layer in Terraform (scoped AWS Config recorder + Security Hub with FSBP standard).
+- Set up CI/CD in GitHub Actions with pinned Checkov, terraform fmt/validate, and a deliberate failing push to prove the gate works.
+- Proved detection end-to-end: intentionally created drift, captured real findings, measured latency, and rolled back cleanly with full evidence.
 
-Everything else on this page is the design, sequenced in [`BUILD_PLAN.md`](./BUILD_PLAN.md).
+Next up is the proposer slice (the detect-and-propose Lambda, human approval, bounded remediation role, and negative IAM tests).
 
-## Demo
+## Releases
 
-_Lands with Phase 1: a short GIF of `make demo` and a two-to-three-minute walkthrough._
+sapper is one project delivered as three releases, each shippable on its own.
 
-## What it does
+- **Release 1 – Security Core** (in progress): Detect unsafe changes in CI and after deploy, then remediate only after human approval with full evidence.
+- **Release 2 – AI Advisory** (designed): A Bedrock worker that reasons about findings from outside the authorization path. It can advise but cannot act.
+- **Release 3 – EKS Platform Proof** (designed): Deploy the advisory worker to Amazon EKS under pod-scoped identity.
 
-The shift-left layer catches problems before deploy. Every change to the Terraform runs through Gitleaks (secrets), TFLint (lint), and Checkov (IaC security) in CI, and the findings flow into a single severity-aware gate: high-severity fails the build, low-severity warns, because failing on noise is how teams learn to ignore the gate.
+## Architecture (Release 1)
 
-The runtime layer handles what gets past the pipeline, after deploy. For the misconfigurations that bypass it (console changes, drift, resources created elsewhere), Security Hub findings route through EventBridge to a Lambda that detects and proposes a fix, captures before-state, and stops. That Lambda holds no permission to mutate any target resource: no Security Hub write, no approval write, no remediation action; it can only read, and write its own proposal and evidence records. A human approves, and a separate step, running as a bounded least-privilege role, re-checks the resource, applies the reversible fix, and captures after-state. Two scenarios: flip a public S3 bucket private, and revoke an over-permissive security-group rule.
+Two layers:
 
-## Architecture
+**Shift-left (CI)**  
+`terraform fmt`, validate, and pinned Checkov run on every push. High-severity findings fail the build. No AWS credentials in CI.
 
-Shift-left (CI), the target state; today's live gate is fmt, validate, and a pinned Checkov with zero AWS access (see Status):
+**Runtime (Detect → Propose → Approve → Remediate)**  
+Security Hub finding → EventBridge → Proposer Lambda (read-only) → writes proposal record → Human approval → Bounded remediation role applies the reversible fix and captures before/after evidence.
 
-```
-commit  (Gitleaks runs locally via pre-commit for fast feedback)
-  └─ GitHub Actions  (OIDC → least-privilege AWS role · Phase 2; CI currently holds no AWS credentials)
-       ├─ Gitleaks: secret scanning (server-side, the real enforcement gate)
-       ├─ TFLint: Terraform linting
-       ├─ Checkov: Terraform security scanning
-       └─ OPA/Conftest: organization-specific policy-as-code  (planned · v1.1)
-            └─ Severity gate → pass / warn / fail  +  committed evidence
-```
+The proposer has no mutation permissions. The remediation role is locked down with a permissions boundary and negative IAM tests.
 
-Runtime (detect and propose, then approve, then remediate):
+## Results from the Lab
 
-```
-drift  →  Security Hub finding  →  EventBridge  →  Lambda (detect-and-propose)
-                       (rule narrowed to FAILED        │  (read + write-evidence only; no Security Hub write,
-                        + the allowed control IDs)     │   no approval write, no remediation permission)
-                                                       ├─ dedupe: open-proposal suppressor  (app-side;
-                                                       │   finding ID + UpdatedAt distinguishes recurrence)
-                                                       ├─ capture before-state
-                                                       ├─ write dry-run plan + proposal record ──▶ STOP
-                                                       └─ on handler failure: retries → SQS DLQ + alarm
-                                                                │                      (no silent drops)
-                                  human approval  (CLI writes a separate approval record:
-                                  human principal only, create-only, immutable once written)
-                                                                │
-                                      remediation step  (separate invocation; assumes the bounded role)
-                                      ├─ verify approval + plan-hash binding
-                                      ├─ re-check current state (no TOCTOU)
-                                      ├─ apply reversible fix  (bounded role + permissions boundary)
-                                      ├─ capture after-state → verify → evidence
-                                      └─ optional, off by default: mark finding RESOLVED
-                                         (Security Hub auto-resolves on a compliant eval)
-```
+- Real S3.8 finding captured through EventBridge and committed as evidence.
+- CI gate proven with a deliberate failing push restored to green.
+- Interpreter-parity check added after discovering pinned Checkov returned fewer checks under Python 3.14.
+- Scoped resources + budget alarm set before anything that bills continuously was enabled.
 
-## The design decisions that matter
-
-A few choices carry this project; full rationale is in [`BLUEPRINT.md`](./BLUEPRINT.md) and the [ADRs](./adr):
-
-- The proposer detects and proposes, and it never remediates. A Lambda can't pause for human approval (stateless, 15-minute cap), so approval becomes a state transition between two invocations: the proposer writes a plan and stops, then a separate approved step acts. The proposer can only read and write its own proposal and evidence records: no Security Hub write, no approval write, no remediation permission. The two remediation actions live only in a separate role the approved step assumes.
-- The remediation role's blast radius is bounded, and the bound is demonstrated three times. The role can perform only the two scoped, reversible actions, capped by a permissions boundary, with tag-write denied so its scope can't be widened by a retag. The S3 action is scoped by explicit bucket ARN (S3 bucket-level tag authorization needs per-bucket ABAC, so an ARN scope is the dependable choice); the SG action is scoped to the lab security group(s). Three negative IAM tests (`make verify-boundary`) prove the three boundary claims: the remediation role attempting a forbidden action, the proposer attempting a mutation, and the proposer attempting an approval write. Each captured `AccessDenied` is committed as evidence, which turns the bounds from written claims into demonstrated ones.
-- The human gate can't be forged. The proposer writes only a proposal record; the approval record is writable only by the human principal (enforced by bucket policy) and is create-only, made immutable once written by an S3 conditional-write condition in that policy. It is bound to the finding, the resource, and a hash of the dry-run plan, so a compromised proposer can't approve itself and a stale approval can't authorize a different change. Provenance is enforced by policy and verified at apply time by the binding.
-- Failures leave evidence too. A handler failure exhausts its retries into a dead-letter queue and trips an alarm rather than vanishing, and the evidence store is versioned with deletes denied to the runtime roles, so neither a crash nor a compromised proposer can quietly lose a finding or rewrite history.
-- Evidence-first, and adversarial. Every workflow produces an artifact. The guardrails are proven by making them fail on purpose: a planted secret blocked, insecure Terraform rejected. A clean pass proves nothing on its own. One blind spot the scanners miss is documented honestly, and at least one real Security Hub finding is run end-to-end so the runtime path is demonstrated on real input.
-
-## Results
-
-_Populated from real runs as phases land. The safe-failure row is the project's one documented engineering improvement: a baseline captured before hardening, re-measured after, against a failure-mode set pre-registered in [`EVIDENCE.md`](./EVIDENCE.md)._
-
-| Measure | Value |
-|---|---|
-| Security Hub controls monitored | _TBD_ |
-| CI gate outcomes (blocked / warned) | _TBD_ |
-| Mean time to remediate, lab (excl. approval pause) | _TBD_ |
-| Safe-failure coverage (baseline to after) | _TBD_ |
-
-## Run it
-
-The target workflow; targets land with their phases (see [`BUILD_PLAN.md`](./BUILD_PLAN.md)).
+## Run It
 
 ```bash
-make setup       # prerequisites + remote-state backend
-make deploy      # stand up the lab + the detect-and-propose pipeline
-                 # (incl. Security Hub / Config under Terraform, the DLQ, and alarms)
-
-# Simulate drift: make a lab bucket public out-of-band. The detect-and-propose
-# Lambda captures before-state, writes a dry-run plan + proposal record, and
-# STOPS. It holds no permission to mutate the resource.
-#
-# Review the plan, then approve as your human principal via the approval CLI
-# (cli/approve.py): it writes the human-only, create-only approval record;
-# the proposer can't.
-
-make remediate        # assumes the bounded role, re-validates state, applies the
-                      # reversible fix, captures after-state, and verifies
-make verify-boundary  # run the three negative IAM tests; capture the denials as evidence
-make destroy          # tear down lab resources AND disable the detective services
+make setup     # prerequisites + remote state
+make deploy    # stand up lab + detective stack
+# Simulate drift (e.g. make a lab bucket public)
+make remediate # after human approval
+make destroy   # clean teardown
 ```
-
-**Prerequisites:** an AWS account with SSO and Terraform; the GitHub OIDC role arrives with Phase 2.
-**Cost:** runs on AWS Free Tier where possible; Security Hub and Config bill continuously while enabled, so `make destroy` turns them off. See [`COST.md`](./COST.md).
-
-> `make demo` runs that whole flow, detect → propose → approve → remediate → verify, against a representative event for speed, so a reviewer sees a finding gated and remediated in one command. Real Security Hub findings can take minutes to hours to appear, and a synthetic event can't impersonate the real source (`PutEvents` cannot publish events with an `aws.*` source; AWS reserves that prefix). So the demo enters through a demo-only twin EventBridge rule on a custom source (`sapper.demo`), carrying the identical payload to the identical handler. Every evidence record is labeled REAL or DEMO, the measured real-finding latency is documented, and at least one fully real finding is banked end-to-end as evidence that the production-source path works. Reviewers who won't stand up their own account can follow the recording and the committed evidence artifacts.
-
-## Threat model and limitations
-
-This is a single-account lab, well short of a production system. It runs in a dedicated lab account: the account ID and bucket names are visible in code and evidence by design; they carry no secret value, and the model treats them as plain identifiers. The runtime layer exists because prevention is never complete: resources drift via clickops, emergencies, and out-of-band changes. The threat model treats four runtime escalation paths as first-class: approval forgery, evidence tampering (a compromised proposer rewriting its own history), scope-widening by retag, and the remediation running as admin instead of the bounded role, each closed by design. One honest scope note: the bounded-blast-radius property is a property of the remediation function's *identity*; the account, operated by an admin SSO identity, is the wider trust boundary. Full model in [`THREAT_MODEL.md`](./THREAT_MODEL.md); the honest distance to production is in [`PRODUCTION_GAP.md`](./PRODUCTION_GAP.md).
-
-## What I'd do next
-
-Policy-as-code (OPA/Conftest) is in the design and sequenced after v1, at the severity-gate seam. Later: Step Functions or SSM Automation `aws:approve` for formal approval, an AWS Config comparison path, a CSPM sliver (a toxic-combination rule), and tightly gated conditional auto-remediation.
 
 ## Docs
 
-[`BLUEPRINT.md`](./BLUEPRINT.md) (design) · [`BUILD_PLAN.md`](./BUILD_PLAN.md) (phased delivery) · [`SECURITY_PIPELINE.md`](./SECURITY_PIPELINE.md) · [`REMEDIATION.md`](./REMEDIATION.md) · [`EVIDENCE.md`](./EVIDENCE.md) · [`THREAT_MODEL.md`](./THREAT_MODEL.md) · [`PRODUCTION_GAP.md`](./PRODUCTION_GAP.md) · [`COST.md`](./COST.md) · [`SPIKE_NOTES.md`](./SPIKE_NOTES.md) · [ADRs](./adr)
+- [ADRs](./adr)
+- [Evidence](./evidence)
+- [Threat Model](./THREAT_MODEL.md)
+- [Production Gap](./PRODUCTION_GAP.md)
+- [Cost](./COST.md)
 
 ## About
 
-Built by Mamadou Wane, Marine Corps veteran (combat engineer) and CS student at WGU, graduating December 2026. sapper is the first of two decoupled projects that share one thesis: define the blast radius, prove the system fails safe, and measure whether it does. The second applies the thesis to reliability under controlled fault injection. Two narrow builds taken deep, instead of one sprawling platform; the scope-down is deliberate.
+Built by Mamadou Wane, Marine Corps veteran (combat engineer) and CS student at WGU, graduating December 2026. sapper is one flagship delivered as three releases that share one thesis: define the blast radius, prove the system fails safe, and measure whether it does. 
 
 [github.com/mamadou-wane](https://github.com/mamadou-wane) · [mamadouwane.com](https://mamadouwane.com) · [linkedin.com/in/mamadouswane](https://linkedin.com/in/mamadouswane)
-
