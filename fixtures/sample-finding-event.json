@@ -1,0 +1,100 @@
+ {
+  "version": "0",
+  "id": "ce8b0cc1-3a14-26be-d4d9-3b7ab91427b8",
+  "detail-type": "Security Hub Findings - Imported",
+  "source": "aws.securityhub",
+  "account": "116137268889",
+  "time": "2026-06-26T01:22:30Z",
+  "region": "us-east-1",
+  "resources": [
+    "arn:aws:securityhub:us-east-1::product/aws/securityhub/arn:aws:securityhub:us-east-1:116137268889:security-control/S3.8/finding/d9e45e0f-a518-4110-88ea-66821b2c7bd9"
+  ],
+  "detail": {
+    "findings": [
+      {
+        "ProductArn": "arn:aws:securityhub:us-east-1::product/aws/securityhub",
+        "Types": [
+          "Software and Configuration Checks/Industry and Regulatory Standards"
+        ],
+        "Description": "This control checks whether an Amazon S3 general purpose bucket blocks public access at the bucket level. The control fails if any of the following settings are set to false: ignorePublicAcls, blockPublicPolicy, blockPublicAcls, restrictPublicBuckets.",
+        "Compliance": {
+          "Status": "FAILED",
+          "SecurityControlId": "S3.8",
+          "AssociatedStandards": [
+            {
+              "StandardsId": "standards/aws-foundational-security-best-practices/v/1.0.0"
+            }
+          ]
+        },
+        "ProductName": "Security Hub",
+        "FirstObservedAt": "2026-06-26T01:21:52.318Z",
+        "CreatedAt": "2026-06-25T23:52:24.357Z",
+        "LastObservedAt": "2026-06-26T01:21:52.318Z",
+        "CompanyName": "AWS",
+        "FindingProviderFields": {
+          "Types": [
+            "Software and Configuration Checks/Industry and Regulatory Standards"
+          ],
+          "Severity": {
+            "Normalized": 70,
+            "Label": "HIGH",
+            "Original": "HIGH"
+          }
+        },
+        "ProductFields": {
+          "RelatedAWSResources:0/name": "securityhub-s3-bucket-level-public-access-prohibited-21f50afb",
+          "RelatedAWSResources:0/type": "AWS::Config::ConfigRule",
+          "aws/securityhub/ProductName": "Security Hub",
+          "aws/securityhub/CompanyName": "AWS",
+          "aws/securityhub/annotation": "PublicAccessBlockConfigurations are incorrect for block_public_acls: false ignore_public_acls: false block_public_policy: false restrict_public_buckets false",
+          "Resources:0/Id": "arn:aws:s3:::sapper-lab-public-116137268889",
+          "aws/securityhub/FindingId": "arn:aws:securityhub:us-east-1::product/aws/securityhub/arn:aws:securityhub:us-east-1:116137268889:security-control/S3.8/finding/d9e45e0f-a518-4110-88ea-66821b2c7bd9",
+          "PreviousComplianceStatus": "PASSED"
+        },
+        "Remediation": {
+          "Recommendation": {
+            "Text": "For information on how to correct this issue, consult the AWS Security Hub controls documentation.",
+            "Url": "https://docs.aws.amazon.com/console/securityhub/S3.8/remediation"
+          }
+        },
+        "SchemaVersion": "2018-10-08",
+        "GeneratorId": "security-control/S3.8",
+        "RecordState": "ACTIVE",
+        "Title": "S3 general purpose buckets should block public access",
+        "Workflow": {
+          "Status": "NEW"
+        },
+        "Severity": {
+          "Normalized": 70,
+          "Label": "HIGH",
+          "Original": "HIGH"
+        },
+        "UpdatedAt": "2026-06-26T01:22:15.937Z",
+        "WorkflowState": "NEW",
+        "AwsAccountId": "116137268889",
+        "Region": "us-east-1",
+        "Id": "arn:aws:securityhub:us-east-1:116137268889:security-control/S3.8/finding/d9e45e0f-a518-4110-88ea-66821b2c7bd9",
+        "Resources": [
+          {
+            "Partition": "aws",
+            "Type": "AwsS3Bucket",
+            "Details": {
+              "AwsS3Bucket": {
+                "OwnerId": "REDACTED_OWNER_ID",
+                "CreatedAt": "2026-06-25T23:48:49.000Z",
+                "Name": "sapper-lab-public-116137268889"
+              }
+            },
+            "Region": "us-east-1",
+            "Id": "arn:aws:s3:::sapper-lab-public-116137268889",
+            "Tags": {
+              "Project": "sapper",
+              "Environment": "lab"
+            }
+          }
+        ],
+        "ProcessedAt": "2026-06-26T01:22:26.953Z"
+      }
+    ]
+  }
+}
