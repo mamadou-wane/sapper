@@ -30,16 +30,33 @@ help: ## Show this help
 		| sort \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Real today: fmt, validate, scan, deploy, destroy."
-	@echo "Not built yet (honest stubs): remediate, verify-boundary, demo."
+	@echo "Real today: setup-scan, fmt, validate, scan, plan, deploy, destroy."
+	@echo "Not built yet (honest stubs): remediate, rollback, verify-boundary, demo."
+	@echo "No AWS credentials needed: setup-scan, fmt, validate, scan."
 
 # ---------------------------------------------------------------------------
 # Real targets: these wrap commands already run by hand
 # ---------------------------------------------------------------------------
 
 .PHONY: setup
-setup: ## Initialize Terraform working dir (downloads providers)
+setup: ## Initialize Terraform working dir (downloads providers; needs backend access)
 	$(TF) init
+
+# The scanner venv is gitignored, so a fresh clone has no ./.venv-checkov312.
+# Without this target, `make scan` and `make deploy` fail on a clean checkout.
+.PHONY: setup-scan
+setup-scan: ## Create the pinned Python 3.12 venv the Checkov scan requires
+	@command -v python3.12 >/dev/null 2>&1 || { \
+		echo "python3.12 not found. ADR-0002: Checkov's graph framework only loads"; \
+		echo "under 3.12, so scanner parity with CI requires it. Install it first."; \
+		exit 1; \
+	}
+	python3.12 -m venv .venv-checkov312
+	./.venv-checkov312/bin/pip install --quiet --upgrade pip
+	./.venv-checkov312/bin/pip install --quiet 'checkov==3.2.530'
+	@echo "Scanner venv ready. Run 'make scan' and check the summary line: a result"
+	@echo "with 0 skipped means the graph framework did not load and the scan is"
+	@echo "silently degraded (ADR-0002). Parity is read from the summary, not --version."
 
 .PHONY: fmt
 fmt: ## Check Terraform formatting (non-mutating; matches CI)
@@ -86,18 +103,36 @@ destroy: ## Tear down lab + detective services to zero cost (guarded; never boot
 # ---------------------------------------------------------------------------
 
 .PHONY: remediate
-remediate: ## [NOT BUILT] Phase 1: assume bounded role, verify approval, apply fix, capture evidence
+remediate: ## [NOT BUILT] P4: render the plan, take approval, let the remediator apply it
 	@echo "remediate: not built yet."
-	@echo "Phase 1 will: assume the bounded remediation role (not admin), verify the"
-	@echo "approval binding (finding ID, resource ARN, plan-hash), re-read live state and"
-	@echo "abort on drift, flip the bucket private, capture after-state, and verify."
+	@echo "P4 will: assume the sapper-approver role (which holds no mutating permission"
+	@echo "and cannot assume the bounded role), render the dry-run plan as the exact bytes"
+	@echo "that were hashed, confirm by typed bucket name, and write the approval object."
+	@echo "Writing that object is the single point of commitment: an S3 event triggers the"
+	@echo "remediator, which verifies the binding, claims consumed/<proposal-id> so the"
+	@echo "approval burns, re-reads live state and aborts on drift, then applies the fix"
+	@echo "under the bounded role and captures after-state."
+
+.PHONY: rollback
+rollback: ## [NOT BUILT] P4: restore the captured before_state for a proposal, with evidence
+	@echo "rollback: not built yet."
+	@echo "P4 will: read the applied record for a proposal id, restore the before_state"
+	@echo "captured at propose time, and write rollback/<proposal-id> recording who ran it,"
+	@echo "when, and the state before and after. Runs under the bounded role: restoring the"
+	@echo "BPA flags is the same API on the same allowlisted ARN, so it needs no new grant."
+	@echo "No approval required. Undoing to a captured prior state is not the action the"
+	@echo "approval boundary gates, and the rollback is evidenced."
 
 .PHONY: verify-boundary
-verify-boundary: ## [NOT BUILT] Phase 1: run the 3 negative IAM tests, capture each AccessDenied
+verify-boundary: ## [NOT BUILT] P5: run the 8 negative IAM tests, capture each AccessDenied
 	@echo "verify-boundary: not built yet."
-	@echo "Phase 1 will: prove all three boundary claims by attempting forbidden actions"
-	@echo "from the remediation and proposer roles and capturing each AccessDenied as a"
-	@echo "committed evidence artifact."
+	@echo "P5 will: attempt eight forbidden actions and capture each AccessDenied as a"
+	@echo "committed artifact. Proposer: target mutation, approval write, Security Hub"
+	@echo "write, sts:AssumeRole. Remediator: approval write, delete of a consumed marker."
+	@echo "Approver: target mutation, sts:AssumeRole on the bounded role."
+	@echo "Each is paired with a positive control in the same run, so a denial cannot be"
+	@echo "confused with a broken credential. The account administrator defeats all of"
+	@echo "this and is out of scope: see the threat model in PRODUCTION_GAP.md."
 
 .PHONY: demo
 demo: ## [NOT BUILT] Phase 4: drive the end-to-end run via the demo twin rule (sapper.demo)

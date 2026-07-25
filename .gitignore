@@ -25,8 +25,22 @@ terraform.rc
 
 # Private spike/evidence artifacts
 SPIKE_NOTES.md
-fixtures/sample-finding-event.json
 *.zip
+
+# NOTE: fixtures/sample-finding-event.json was previously listed here while also
+# being tracked, so the ignore had no effect and misdescribed the repo. It is the
+# real EventBridge envelope banked by P1, already redacted, and the proposer
+# handler tests load it. It is tracked on purpose.
+
+# Internal working docs.
+# COST.md and PRODUCTION_GAP.md are deliberately public: they are where deferred
+# scope and cost honesty live, and a reviewer has to be able to open them.
+#
+# docs/ai-workflow.md is the full internal record, including the working rules
+# and delivery strategy. AI_WORKFLOW.md is its redacted public counterpart and
+# IS tracked. Keep new sessions in both: full detail here, engineering-only there.
+PLAN.md
+docs/ai-workflow.md
 
 # JetBrains / PyCharm
 .idea/

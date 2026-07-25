@@ -15,7 +15,17 @@ A sapper is a combat engineer who clears hazards and breaches obstacles, but kno
 - Set up CI/CD in GitHub Actions with pinned Checkov, terraform fmt/validate, and a deliberate failing push to prove the gate works.
 - Proved detection end-to-end: intentionally created drift, captured real findings, measured latency, and rolled back cleanly with full evidence.
 
-Next up is the proposer slice (the detect-and-propose Lambda, human approval, bounded remediation role, and negative IAM tests).
+Next up is a boundary spike that proves the separation of identity against live AWS, before the
+proposer is built on top of it. It banks five captures, each naming the principal that produced it:
+the approver writes an approval and succeeds, the approver's second write to the same key returns
+`412`, a write without the conditional header returns `403` from the bucket policy, the proposer's
+write to the approval prefix returns `403 AccessDenied`, and a positive control shows the proposer
+can still write its own prefix. That last one matters: a denial only proves a boundary if the same
+credential succeeds somewhere it should.
+
+Mocked AWS cannot evaluate bucket policies, so this proof has to run against live AWS and it comes
+first. Then the proposer Lambda, the records and integrity layer, the approval CLI and bounded
+remediation role, and the negative IAM suite.
 
 ## Releases
 
@@ -27,15 +37,28 @@ sapper is one project delivered as three releases, each shippable on its own.
 
 ## Architecture (Release 1)
 
-Two layers:
+Two layers. The first is running today. The second is designed and partly built; this section
+marks which is which, because a boundary claim that is not yet enforced is not a boundary.
 
-**Shift-left (CI)**  
-`terraform fmt`, validate, and pinned Checkov run on every push. High-severity findings fail the build. No AWS credentials in CI.
+**Shift-left (CI) · running**  
+`terraform fmt`, offline `validate`, and pinned Checkov run on every push. Any failed Checkov check
+fails the build. No AWS credentials in CI. Severity-aware gating, secret scanning, and Terraform
+linting are future work: open-source Checkov cannot filter by severity without a commercial API
+key, so this project does not claim severity-gated builds.
 
 **Runtime (Detect → Propose → Approve → Remediate)**  
-Security Hub finding → EventBridge → Proposer Lambda (read-only) → writes proposal record → Human approval → Bounded remediation role applies the reversible fix and captures before/after evidence.
+Detection is running: Security Hub CSPM emits an ASFF finding, and a Terraform-managed EventBridge
+rule (`sapper-securityhub-findings`) matches it. The rule is deliberately target-less until the
+proposer lands.
 
-The proposer has no mutation permissions. The remediation role is locked down with a permissions boundary and negative IAM tests.
+The rest is designed, specified, and not yet built: a proposer Lambda that gates the finding and
+writes a PENDING proposal record with a dry-run plan and its hash, a human-only create-only
+approval bound to that plan hash, and a separate bounded remediation role that applies the
+reversible fix and captures before/after evidence.
+
+The design intent is that the proposer holds no mutating permission and cannot write its own
+approval, with each absence backed by an explicit IAM deny and proven at runtime by a captured
+`AccessDenied`. That proof does not exist yet. Until it does, this repo claims a design. It does not yet claim an enforced boundary.
 
 ## Results from the Lab
 
@@ -46,21 +69,38 @@ The proposer has no mutation permissions. The remediation role is locked down wi
 
 ## Run It
 
+Requires Terraform, the AWS CLI with credentials, and Python 3.12 (Checkov's graph framework only
+loads under 3.12; see [ADR-0002](./adr/0002-inline-checkov-suppressions.md)).
+
+The remote state backend is hardcoded to a bucket in the author's account, so `make deploy` will
+not work from a clean clone yet. What does work from a clean clone:
+
 ```bash
-make setup     # prerequisites + remote state
-make deploy    # stand up lab + detective stack
-# Simulate drift (e.g. make a lab bucket public)
-make remediate # after human approval
-make destroy   # clean teardown
+make setup-scan   # create the pinned Python 3.12 venv used by the scanner
+make fmt          # terraform fmt -check (matches CI)
+make validate     # offline terraform validate (no AWS credentials needed)
+make scan         # Checkov guardrail scan (parity-locked to CI)
+make help         # every target, and which ones are not built yet
 ```
+
+With AWS credentials and the backend pointed at your own bucket:
+
+```bash
+make deploy       # stand up lab + detective stack (scans first)
+make destroy      # tear down lab + detective services (guarded; never touches state)
+```
+
+`make remediate`, `make verify-boundary`, and `make demo` are honest stubs that print what they
+will do. `make help` labels them `[NOT BUILT]`. They are not silently broken: they are not written.
 
 ## Docs
 
 - [ADRs](./adr)
 - [Evidence](./evidence)
-- [Threat Model](./THREAT_MODEL.md)
-- [Production Gap](./PRODUCTION_GAP.md)
 - [Cost](./COST.md)
+- [Production Gap](./PRODUCTION_GAP.md)
+- [Building this with an AI agent](./AI_WORKFLOW.md)
+- [License](./LICENSE) (Apache-2.0)
 
 ## About
 
