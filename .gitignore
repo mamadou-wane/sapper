@@ -42,27 +42,59 @@ SPIKE_NOTES.md
 PLAN.md
 docs/ai-workflow.md
 
+# PLAN-v2.md amends PLAN.md (cuts old R2/R3, adds the operations release). Same
+# class of working document, same reason to stay untracked.
+PLAN-v2.md
+
+# AI_WORKFLOW.md went private 2026-08-23. It was tracked, so this line only works
+# because the same change ran `git rm --cached AI_WORKFLOW.md` (see the fixtures
+# note above for the trap). It is now the private running log of AI work; the
+# public disclosure of AI use is AI_USAGE.md, drafted from that log.
+AI_WORKFLOW.md
+
+# AGENTS.md is the working agreement for AI agents in this repo. CLAUDE.md is its
+# one-line import bridge (Claude Code reads CLAUDE.md, not AGENTS.md). Both untracked
+# while the agreement stabilizes; intended to become public once it settles.
+AGENTS.md
+CLAUDE.md
+
+# Superseded plan documents and stale rendered views live here, out of the way
+# of agents looking for the current plan (PLAN-v2.md).
+docs/archive/
+
+# PLAN.html is a local reading view of PLAN.md, rendered by render-plan.py
+# (python3 render-plan.py). It carries the same private content: the account ID,
+# the delivery strategy, the drop order. Both stay untracked with their source.
+PLAN.html
+render-plan.py
+
+# Slice specs and their implementation plans are working documents, like PLAN.md:
+# they carry the account ID and the corrections-in-progress against PLAN.md before
+# those corrections land. The engineering content reaches the public repo through
+# AI_WORKFLOW.md and the ADRs, not through the spec. Listed one file at a time
+# rather than by glob, so adding a slice is a deliberate line rather than a
+# pattern that silently swallows a doc meant to be published. Each document's
+# rendered reading view goes with its source.
+docs/p15-boundary-spike-spec.md
+docs/p15-boundary-spike-spec.html
+docs/p15-implementation-plan.md
+docs/p15-implementation-plan.html
+docs/p15-consistency-audit.md
+docs/p15-consistency-audit.html
+
 # JetBrains / PyCharm
 .idea/
-
-# IDE
-.idea/
-
-# Terraform local files
-**/.terraform/
-*.tfstate
-*.tfstate.*
-crash.log
-crash.*.log
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
 
 # Local env/secrets
 .env
 .env.*
 *.pem
 *.key
+
+# OS noise
 .DS_Store
+
+# Local virtualenvs and tooling
+.venv/
 .venv-checkov312/
+.gstack/
