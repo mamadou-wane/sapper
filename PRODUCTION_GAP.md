@@ -28,8 +28,9 @@ without a Prisma Cloud API key, so this project does not claim severity-gated bu
 
 Release 1 remediates one control: S3.8, public bucket access. The security-group scenario
 (EC2.18 and EC2.19) is designed and deferred. Adding it is a parser path, an IAM policy statement,
-and a remediation module. The ASFF parser already handles full-ARN resource IDs, which is the form
-security groups arrive in, and that path is unit tested.
+and a remediation module. The parser is specced to handle full-ARN resource IDs, which is the form
+security groups arrive in; that path and its unit tests land with the proposer (P2). Nothing is
+built or tested yet.
 
 Two things to get right when it is built, recorded now so they are not rediscovered the hard way.
 
