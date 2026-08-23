@@ -8,7 +8,8 @@ A sapper is a combat engineer who clears hazards and breaches obstacles, but kno
 
 ## Current Status
 
-**Release 1 (Security Core) is in active development.** The foundation is built and verified.
+**Status 2026-08-23:** Release 1 (Security Core) in progress. The detection foundation is
+built and verified; next is the P1.5 boundary spike.
 
 - De-risked the live Security Hub contract with real findings (S3.8/S3.9 for public buckets, EC2.18/EC2.19 for open security groups).
 - Built the detective layer in Terraform (scoped AWS Config recorder + Security Hub with FSBP standard).
