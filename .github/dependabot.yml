@@ -1,0 +1,17 @@
+# Weekly version bumps. The github-actions entry is required, not optional: CI
+# actions are pinned to commit SHAs, which disables Dependabot vulnerability
+# alerts for them, so these update PRs are how the pins move.
+# Terraform gets version updates only; Dependabot has no security updates for
+# the terraform ecosystem, and Checkov covers that failure mode.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directories:
+      - "/terraform"
+      - "/terraform/bootstrap"
+    schedule:
+      interval: weekly
