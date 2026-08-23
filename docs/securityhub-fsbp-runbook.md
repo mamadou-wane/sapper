@@ -4,7 +4,7 @@
 
 T5 enables the second half of the detective layer. AWS Config (T4) records the two lab resource types; Security Hub evaluates security controls against that recorded data, with AWS Foundational Security Best Practices (FSBP) enabled explicitly and Terraform owning the account configuration and the enabled standard.
 
-`aws_securityhub_account` targets Security Hub CSPM (classic), which keeps the project on the ASFF / `Security Hub Findings - Imported` contract the whole runtime path rides on, confirmed in Phase 0 (`SPIKE_NOTES.md` §1).
+`aws_securityhub_account` targets Security Hub CSPM (classic), which keeps the project on the ASFF / `Security Hub Findings - Imported` contract the whole runtime path rides on, confirmed in Phase 0 (internal spike record, §1).
 
 This sets up the detection work that follows: intentionally misconfigured lab resources producing Security Hub findings.
 

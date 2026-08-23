@@ -133,7 +133,7 @@ jq '[.Findings[]
 
 Expected: one S3.8 entry with `Status = FAILED`, `RecordState = ACTIVE`, `WorkflowStatus = NEW`, and the resource ARN above.
 
-`WorkflowStatus` is recorded to confirm it sits at NEW and is therefore correctly excluded from the handler gates (SPIKE_NOTES §7), not used for dedupe. The open-proposal suppressor is the dedupe source of truth; workflow status is explicitly not it. Seeing it reset to NEW on the PASSED-to-FAILED transition is the corroboration that excluding it from the gates was right.
+`WorkflowStatus` is recorded to confirm it sits at NEW and is therefore correctly excluded from the handler gates (internal spike record, §7), not used for dedupe. The open-proposal suppressor is the dedupe source of truth; workflow status is explicitly not it. Seeing it reset to NEW on the PASSED-to-FAILED transition is the corroboration that excluding it from the gates was right.
 
 ## Fixture parity
 
