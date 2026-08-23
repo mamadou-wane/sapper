@@ -27,14 +27,6 @@ Mocked AWS cannot evaluate bucket policies, so this proof has to run against liv
 first. Then the proposer Lambda, the records and integrity layer, the approval CLI and bounded
 remediation role, and the negative IAM suite.
 
-## Releases
-
-sapper is one project delivered as three releases, each shippable on its own.
-
-- **Release 1 – Security Core** (in progress): Detect unsafe changes in CI and after deploy, then remediate only after human approval with full evidence.
-- **Release 2 – AI Advisory** (designed): A Bedrock worker that reasons about findings from outside the authorization path. It can advise but cannot act.
-- **Release 3 – EKS Platform Proof** (designed): Deploy the advisory worker to Amazon EKS under pod-scoped identity.
-
 ## Architecture (Release 1)
 
 Two layers. The first is running today. The second is designed and partly built; this section
@@ -99,11 +91,10 @@ will do. `make help` labels them `[NOT BUILT]`. They are not silently broken: th
 - [Evidence](./evidence)
 - [Cost](./COST.md)
 - [Production Gap](./PRODUCTION_GAP.md)
-- [Building this with an AI agent](./AI_WORKFLOW.md)
 - [License](./LICENSE) (Apache-2.0)
 
 ## About
 
-Built by Mamadou Wane, Marine Corps veteran (combat engineer) and CS student at WGU, graduating December 2026. sapper is one flagship delivered as three releases that share one thesis: define the blast radius, prove the system fails safe, and measure whether it does. 
+Built by Mamadou Wane, Marine Corps veteran (combat engineer) and CS student at WGU, graduating December 2026. sapper is one flagship that defines the blast radius, proves the system fails safe, and measures whether it does.
 
 [github.com/mamadou-wane](https://github.com/mamadou-wane) · [mamadouwane.com](https://mamadouwane.com) · [linkedin.com/in/mamadouswane](https://linkedin.com/in/mamadouswane)
