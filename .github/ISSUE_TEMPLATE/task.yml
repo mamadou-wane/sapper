@@ -1,0 +1,23 @@
+name: Task
+description: A unit of work with a definition of done
+labels: ["task"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What exists after this is done that does not exist now.
+    validations:
+      required: true
+  - type: textarea
+    id: definition-of-done
+    attributes:
+      label: Definition of done
+      description: The checks that prove it, one per line.
+    validations:
+      required: true
+  - type: input
+    id: plan-slice
+    attributes:
+      label: Plan slice
+      description: The plan slice this belongs to, if any (P2, G1, ...).

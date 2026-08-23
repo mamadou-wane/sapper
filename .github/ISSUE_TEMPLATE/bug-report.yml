@@ -1,0 +1,32 @@
+name: Bug report
+description: Something in the repo is broken, or a claim does not match reality
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - CI guardrail
+        - Terraform
+        - Control loop
+        - Docs / evidence
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you observe instead.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Reproduction or evidence
+      description: >
+        The commands you ran and their output, or the file and line that makes a
+        false claim. Reports without evidence are closed.
+    validations:
+      required: true
