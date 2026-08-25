@@ -1,0 +1,5 @@
+{
+    "UserId": "AROARWCSSC2M27LOHHTDS:p15-identity",
+    "Account": "116137268889",
+    "Arn": "arn:aws:sts::116137268889:assumed-role/sapper-approver/p15-identity"
+}

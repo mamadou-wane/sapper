@@ -1,0 +1,15 @@
+{
+  "probe": "04-proposer-forge-approval",
+  "matrix_row": "Proposer cannot forge approvals",
+  "principal_declared": "sapper-proposer",
+  "principal_actual": "arn:aws:sts::116137268889:assumed-role/sapper-proposer/p15-probe",
+  "identity_check": "yes",
+  "operation": "s3:PutObject arn:aws:s3:::sapper-evidence-116137268889/approvals/probe-NjlhNTgyNTdhNzc4ZjU5ZTdjMThkNzViM2ZhZWI2NTAvczMtYmxvY2stcHVibGljLWFjY2Vzcy8xNzg3NjkyOTcxMDAwLTk1NTlkMWFiZWIzZDQxZGI4YzMxN2Q4ZGM5ODY4YjE4.json",
+  "if_none_match": "*",
+  "expected": "403",
+  "observed": "403",
+  "exit_code": 254,
+  "stderr": "\naws: [ERROR]: An error occurred (AccessDenied) when calling the PutObject operation: User: arn:aws:sts::116137268889:assumed-role/sapper-proposer/p15-probe is not authorized to perform: s3:PutObject on resource: \"arn:aws:s3:::sapper-evidence-116137268889/approvals/probe-NjlhNTgyNTdhNzc4ZjU5ZTdjMThkNzViM2ZhZWI2NTAvczMtYmxvY2stcHVibGljLWFjY2Vzcy8xNzg3NjkyOTcxMDAwLTk1NTlkMWFiZWIzZDQxZGI4YzMxN2Q4ZGM5ODY4YjE4.json\" with an explicit deny in a resource-based policy\n",
+  "status": "PASS",
+  "captured_at": "2026-08-25T21:22:58Z"
+}

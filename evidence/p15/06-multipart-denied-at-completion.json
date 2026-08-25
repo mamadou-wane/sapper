@@ -1,0 +1,13 @@
+{
+  "probe": "06-multipart-denied-at-completion",
+  "matrix_row": "AT-14: multipart exempt at initiation, enforced at completion",
+  "principal_actual": "arn:aws:sts::116137268889:assumed-role/AWSReservedSSO_AdministratorAccess_2cdf484ab947c12e/mwane",
+  "operation": "aws s3 cp (multipart, 12 MiB) s3://sapper-evidence-116137268889/scratch/multipart-probe.bin",
+  "if_none_match": null,
+  "expected": "403 at CompleteMultipartUpload. The implementation plan predicted 200; the vendor documentation check of 2026-08-25 corrected the expectation before the run: CompleteMultipartUpload accepts If-None-Match and is enforced by the conditional-write Deny, while CreateMultipartUpload and UploadPart are exempted by s3:ObjectCreationOperation.",
+  "observed": "All 12 MiB of parts uploaded, then AccessDenied at CompleteMultipartUpload from an explicit deny in the bucket policy. The object was never created (HeadObject 404) and the CLI aborted its own upload (list-multipart-uploads: 0).",
+  "stderr": "upload failed: ../../../../tmp/p15-multipart.bin to s3://sapper-evidence-116137268889/scratch/multipart-probe.bin An error occurred (AccessDenied) when calling the CompleteMultipartUpload operation: User: arn:aws:sts::116137268889:assumed-role/AWSReservedSSO_AdministratorAccess_2cdf484ab947c12e/mwane is not authorized to perform: s3:PutObject on resource: \"arn:aws:s3:::sapper-evidence-116137268889/scratch/multipart-probe.bin\" with an explicit deny in a resource-based policy",
+  "status": "FINDING RECORDED",
+  "ruling": "R9, 2026-08-25: record the finding, do not weaken the bucket-wide Deny, no scratch/ exemption. The evidence store takes conditional writes only.",
+  "captured_at": "2026-08-25T21:34:00Z"
+}
