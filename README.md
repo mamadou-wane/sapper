@@ -8,25 +8,27 @@ A sapper is a combat engineer who clears hazards and breaches obstacles, but kno
 
 ## Current Status
 
-**Status 2026-08-23:** Release 1 (Security Core) in progress. The detection foundation is
-built and verified; next is the P1.5 boundary spike.
+**Status 2026-08-25:** Release 1 (Security Core) in progress. The detection foundation and the
+approval boundary are built and proven against live AWS; next is P2, the proposer.
 
 - De-risked the live Security Hub contract with real findings (S3.8/S3.9 for public buckets, EC2.18/EC2.19 for open security groups).
 - Built the detective layer in Terraform (scoped AWS Config recorder + Security Hub with FSBP standard).
 - Set up CI/CD in GitHub Actions with pinned Checkov, terraform fmt/validate, and a deliberate failing push to prove the gate works.
 - Proved detection end-to-end: intentionally created drift, captured real findings, measured latency, and rolled back cleanly with full evidence.
+- Proved the approval boundary live (P1.5): a durable Deny-only evidence bucket, four scoped roles, and sixteen acceptance tests banked under `evidence/p15/`, each capture naming the principal that produced it.
 
-Next up is a boundary spike that proves the separation of identity against live AWS, before the
-proposer is built on top of it. It banks five captures, each naming the principal that produced it:
-the approver writes an approval and succeeds, the approver's second write to the same key returns
-`412`, a write without the conditional header returns `403` from the bucket policy, the proposer's
-write to the approval prefix returns `403 AccessDenied`, and a positive control shows the proposer
-can still write its own prefix. That last one matters: a denial only proves a boundary if the same
-credential succeeds somewhere it should.
+The boundary spike ran against live AWS on 2026-08-25 and the captures are banked. The approver
+writes an approval once and a rewrite of the same key returns `412`. A write without the
+conditional header returns `403` from the bucket policy itself, proven by an admin control pair,
+since an admin holds unconditional `s3:*` and its denial can only come from the bucket. The
+proposer's write to the approval prefix is denied while a positive control shows the same
+credential succeeding in its own prefix, and `make destroy` removed the detective stack while the
+evidence bucket and all four roles survived. Those pairings matter: a denial only proves a
+boundary if the same credential succeeds somewhere it should.
 
-Mocked AWS cannot evaluate bucket policies, so this proof has to run against live AWS and it comes
-first. Then the proposer Lambda, the records and integrity layer, the approval CLI and bounded
-remediation role, and the negative IAM suite.
+Mocked AWS cannot evaluate bucket policies, which is why this proof ran first and ran live. Next:
+the proposer Lambda, the records and integrity layer, the approval CLI and bounded remediation
+role, and the negative IAM suite.
 
 ## Architecture (Release 1)
 
