@@ -1,0 +1,15 @@
+{
+  "probe": "07-runtime-role-delete",
+  "matrix_row": "AT-15: the delete-marker path is closed",
+  "principal_actual": "arn:aws:sts::116137268889:assumed-role/sapper-proposer/p15-delete",
+  "operation": "s3:DeleteObject arn:aws:s3:::sapper-evidence-116137268889/proposals/69a58257a778f59e7c18d75b3faeb650/s3-block-public-access/1787692540000-8d05f177b064482883cb07a6118a2d11/proposal.json",
+  "expected": "403",
+  "observed": "403. The error names an explicit deny in a resource-based policy, which attributes the refusal to the bucket policy's DenyDeletes rather than to the proposer never having been granted delete. The distinguishing admin-delete test R9 contemplated is unnecessary and was not run.",
+  "stderr": "An error occurred (AccessDenied) when calling the DeleteObject operation: User: arn:aws:sts::116137268889:assumed-role/sapper-proposer/p15-delete is not authorized to perform: s3:DeleteObject on resource: \"arn:aws:s3:::sapper-evidence-116137268889/proposals/69a58257a778f59e7c18d75b3faeb650/s3-block-public-access/1787692540000-8d05f177b064482883cb07a6118a2d11/proposal.json\" with an explicit deny in a resource-based policy",
+  "post_check": {
+    "versions": 1,
+    "delete_markers": 0
+  },
+  "status": "PASS",
+  "captured_at": "2026-08-25T21:36:00Z"
+}

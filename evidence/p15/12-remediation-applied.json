@@ -1,0 +1,15 @@
+{
+  "probe": "12-remediation-applied",
+  "matrix_row": "AT-11: §6b key template (applied)",
+  "principal_declared": "sapper-remediation",
+  "principal_actual": "arn:aws:sts::116137268889:assumed-role/sapper-remediation/p15-probe",
+  "identity_check": "yes",
+  "operation": "s3:PutObject arn:aws:s3:::sapper-evidence-116137268889/applied/NjlhNTgyNTdhNzc4ZjU5ZTdjMThkNzViM2ZhZWI2NTAvczMtYmxvY2stcHVibGljLWFjY2Vzcy8xNzg3NjkyOTcxMDAwLTk1NTlkMWFiZWIzZDQxZGI4YzMxN2Q4ZGM5ODY4YjE4.json",
+  "if_none_match": "*",
+  "expected": "200",
+  "observed": "200",
+  "exit_code": 0,
+  "stderr": "",
+  "status": "PASS",
+  "captured_at": "2026-08-25T21:23:07Z"
+}

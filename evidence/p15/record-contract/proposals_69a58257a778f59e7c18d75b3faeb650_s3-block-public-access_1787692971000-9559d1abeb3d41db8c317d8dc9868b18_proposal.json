@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "proposal_id": "NjlhNTgyNTdhNzc4ZjU5ZTdjMThkNzViM2ZhZWI2NTAvczMtYmxvY2stcHVibGljLWFjY2Vzcy8xNzg3NjkyOTcxMDAwLTk1NTlkMWFiZWIzZDQxZGI4YzMxN2Q4ZGM5ODY4YjE4",
+  "provenance": "P15_PROBE",
+  "control_id": "S3.8",
+  "resource_arn": "arn:aws:s3:::sapper-lab-public-116137268889",
+  "remediation_action": "s3-block-public-access",
+  "before_state": {
+    "configuration_present": false,
+    "BlockPublicAcls": false, "IgnorePublicAcls": false,
+    "BlockPublicPolicy": false, "RestrictPublicBuckets": false
+  },
+  "plan": {
+    "action": "s3-block-public-access",
+    "target_arn": "arn:aws:s3:::sapper-lab-public-116137268889",
+    "set": { "BlockPublicAcls": true, "IgnorePublicAcls": true,
+             "BlockPublicPolicy": true, "RestrictPublicBuckets": true }
+  },
+  "created_at": "2026-08-25T21:22:52Z"
+}

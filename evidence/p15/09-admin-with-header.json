@@ -1,0 +1,15 @@
+{
+  "probe": "09-admin-with-header",
+  "matrix_row": "Create-only is enforced by the bucket (control)",
+  "principal_declared": "admin",
+  "principal_actual": "arn:aws:sts::116137268889:assumed-role/AWSReservedSSO_AdministratorAccess_2cdf484ab947c12e/mwane",
+  "identity_check": "yes",
+  "operation": "s3:PutObject arn:aws:s3:::sapper-evidence-116137268889/scratch/probe-NjlhNTgyNTdhNzc4ZjU5ZTdjMThkNzViM2ZhZWI2NTAvczMtYmxvY2stcHVibGljLWFjY2Vzcy8xNzg3NjkyOTcxMDAwLTk1NTlkMWFiZWIzZDQxZGI4YzMxN2Q4ZGM5ODY4YjE4.txt",
+  "if_none_match": "*",
+  "expected": "200",
+  "observed": "200",
+  "exit_code": 0,
+  "stderr": "",
+  "status": "PASS",
+  "captured_at": "2026-08-25T21:23:01Z"
+}
