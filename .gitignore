@@ -5,6 +5,9 @@
 *.tfstate
 *.tfstate.*
 
+# Saved plan files (can embed sensitive values)
+*.tfplan
+
 # Crash logs
 crash.log
 crash.*.log
