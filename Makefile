@@ -10,6 +10,7 @@
 
 TF_DIR        := terraform
 TF            := terraform -chdir=$(TF_DIR)
+TF_BOUNDARY   := terraform -chdir=terraform/boundary
 CHECKOV_SKIP  := --skip-path terraform/bootstrap
 
 # Pinned for scanner parity with CI (see ADR-0002): the graph framework
@@ -30,9 +31,14 @@ help: ## Show this help
 		| sort \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Real today: setup-scan, fmt, validate, scan, plan, deploy, destroy."
+	@echo "Real today: setup-scan, fmt, validate, scan, plan, deploy, destroy,"
+	@echo "            boundary-init, boundary-plan, boundary-apply, boundary-probe."
 	@echo "Not built yet (honest stubs): remediate, rollback, verify-boundary, demo."
 	@echo "No AWS credentials needed: setup-scan, fmt, validate, scan."
+	@echo ""
+	@echo "Lifecycle: deploy/destroy operate on terraform/ only. terraform/boundary/"
+	@echo "and terraform/bootstrap/ are persistent and hand-applied; destroy cannot"
+	@echo "reach either, which is what makes the evidence store durable."
 
 # ---------------------------------------------------------------------------
 # Real targets: these wrap commands already run by hand
@@ -66,6 +72,8 @@ fmt: ## Check Terraform formatting (non-mutating; matches CI)
 validate: ## Validate Terraform configuration offline
 	$(TF) init -backend=false
 	$(TF) validate
+	$(TF_BOUNDARY) init -backend=false
+	$(TF_BOUNDARY) validate
 
 .PHONY: scan
 scan: ## Run the Checkov guardrail scan (parity-locked to CI; Python 3.12)
@@ -97,6 +105,36 @@ destroy: ## Tear down lab + detective services to zero cost (guarded; never boot
 	else \
 		echo "Aborted."; \
 	fi
+
+# ---------------------------------------------------------------------------
+# The boundary module: durable, hand-applied, never reached by deploy/destroy.
+#
+# There is deliberately no boundary-destroy target. The evidence bucket is
+# created once and never recreated (PLAN.md §8), and four IAM roles cost nothing
+# to leave in place.
+# ---------------------------------------------------------------------------
+
+.PHONY: boundary-init
+boundary-init: ## Initialize the persistent boundary module (its own state)
+	$(TF_BOUNDARY) init
+
+.PHONY: boundary-plan
+boundary-plan: ## Plan the boundary module and save it for review and apply
+	$(TF_BOUNDARY) plan -out=boundary.tfplan
+
+# Applying a saved plan does not prompt for confirmation: the R5 read of the
+# saved plan is the approval. Terraform refuses a stale plan file if state or
+# config changed since it was written, which forces a fresh plan and a fresh
+# R5.
+.PHONY: boundary-apply
+boundary-apply: ## Apply the saved boundary plan. destroy can never reach these resources
+	@echo ">> Standing order: scan before apply."
+	$(CHECKOV)
+	$(TF_BOUNDARY) apply boundary.tfplan
+
+.PHONY: boundary-probe
+boundary-probe: ## Run the P1.5 boundary probes and bank the captures
+	./scripts/boundary-probe.sh
 
 # ---------------------------------------------------------------------------
 # Honest stubs: Phase 1 and Phase 4 work that does not exist yet

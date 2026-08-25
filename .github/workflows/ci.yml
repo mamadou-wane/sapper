@@ -34,6 +34,12 @@ jobs:
       - name: Validate Terraform
         run: terraform -chdir=terraform validate
 
+      - name: Initialize boundary Terraform without backend
+        run: terraform -chdir=terraform/boundary init -backend=false
+
+      - name: Validate boundary Terraform
+        run: terraform -chdir=terraform/boundary validate
+
       - name: Install Checkov
         run: |
           python3.12 --version
