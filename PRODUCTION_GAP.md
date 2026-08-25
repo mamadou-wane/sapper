@@ -112,6 +112,28 @@ The account administrator can alter the evidence store. The store is tamper-evid
 runtime roles, which hold no delete, lifecycle, versioning, or bucket-policy permission. It is not
 immutable.
 
+That tamper-evidence claim splits by blast radius. The two delete denies apply to every principal
+except the admin, which is what makes it hold. The eight bucket-configuration denies
+(`s3:PutBucketPolicy`, `s3:DeleteBucketPolicy`, `s3:PutBucketVersioning`,
+`s3:PutLifecycleConfiguration`, `s3:PutReplicationConfiguration`, `s3:PutBucketAcl`,
+`s3:PutEncryptionConfiguration`, `s3:PutBucketPublicAccessBlock`) are scoped to the four named roles
+instead: a uniform deny with no named principals would have made the bucket's own policy permanently
+unmodifiable, since the evidence bucket is created once and never recreated. The residual: those
+eight denies do not bind a future principal that gains an identity-based allow to reconfigure the
+bucket, only the roles named today. Accepted in exchange for a bucket whose policy stays modifiable
+by Terraform, the operator, and root.
+
+The proposer and remediator execution roles also trust the operator's admin principal, not only
+`lambda.amazonaws.com`. That widening exists so the boundary probes and the negative suite can run:
+a negative test can only prove a role is denied by acting as that role, and there is no other
+principal available to assume it from a terminal. The consequence: an administrator can chain
+through the remediator's execution role into the bounded role and mutate a target with no approval
+written. That adds a path to a case already declared out of scope above; the bound this project
+proves stays intact, since the approval role still holds no mutating permission and no path to the
+bounded role, so the designed path is unchanged. What the widening buys is that every captured
+`AccessDenied` in this repo is reproducible by a reader running the same commands against the same
+account, rather than requiring a throwaway Lambda deployment per test.
+
 The approval role holds no mutating permission on any target and cannot assume the bounded role.
 The bounded role trusts only the remediator function's execution role, so writing an approval
 object is the only path to an apply. That is enforced in IAM rather than in CLI code, and P5 proves

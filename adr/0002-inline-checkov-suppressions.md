@@ -10,7 +10,9 @@ CI runs Checkov against `terraform/` on every push. After T4 added the AWS Confi
 
 The flagged resources are out of scope by design. The delivery bucket holds temporary AWS Config output and is force-destroyed at teardown. The target bucket is a minimal detection target holding no durable data. The recorder is scoped to two resource types as the Phase 1 cost guard.
 
-The first fix was a global `skip_check` list in `.github/workflows/ci.yml`. CI went green. The list applies to every resource in the repository, current and future, and the planned evidence bucket (specified in `BUILD_PLAN.md` as versioned, SSE, Block Public Access) needs several of the controls being skipped. The workflow also ran Checkov through the mutable `bridgecrewio/checkov-action@master` tag, so the rule set could change between runs with no change in the repo. Phase 1 puts more resources behind this gate (the evidence bucket, IAM roles, EventBridge, the Lambda), so the exemption mechanism had to be settled now.
+The first fix was a global `skip_check` list in `.github/workflows/ci.yml`. CI went green. The list applies to every resource in the repository, current and future, and the planned evidence bucket (specified in `PLAN.md` §8 as versioned, SSE, Block Public Access) needs several of the controls being skipped. The workflow also ran Checkov through the mutable `bridgecrewio/checkov-action@master` tag, so the rule set could change between runs with no change in the repo. Phase 1 puts more resources behind this gate (the evidence bucket, IAM roles, EventBridge, the Lambda), so the exemption mechanism had to be settled now.
+
+[Citation corrected 2026-08-25: this paragraph cited `BUILD_PLAN.md`, a working plan document that was never committed to this repo and was retired and superseded by `PLAN.md` on 2026-07-24. A reader following the citation finds nothing. The evidence-bucket specification it meant is `PLAN.md` §8, the project's engineering plan, which is not published.]
 
 ## Decision
 
@@ -42,9 +44,46 @@ Annotation count: 15 suppressions are filed, 14 consumed. The second `CKV2_AWS_4
 
 ## Consequences
 
-The gate stays active for Phase 1 and beyond. The evidence bucket will be evaluated against versioning, encryption, logging, and lifecycle controls, which matches its build spec. Every future exemption is a visible, reasoned diff line judged against the four-condition test.
+The gate stays active for Phase 1 and beyond. The evidence bucket will be evaluated against versioning, encryption, logging, and lifecycle controls, which matches its build spec (see the 2026-08-25 addendum). Every future exemption is a visible, reasoned diff line judged against the four-condition test.
 
 What gets worse: the lab resources carry suppression comments, duplicated across the two buckets because each exemption must sit on its own resource. Suppressions can rot; if a resource's purpose changes (a bucket starts holding durable data), nothing automated flags the stale skips, so catching that is a code-review job. Pinning trades freshness for determinism: the gate's coverage ages between version bumps, and bumping Checkov is now a deliberate, owned change. The `terraform/bootstrap` exclusion remains a blanket exemption, so that directory must stay limited to the remote-state foundation or it becomes the next blind spot.
 
 We are now committed to: a written reason on every suppression, judged against the four conditions; shipping the evidence bucket compliant rather than suppressed; and treating Checkov version bumps as explicit changes with their own review.
+
+The middle commitment is superseded for the evidence bucket's five ruled skips. See the 2026-08-25 addendum for which controls, and why each one was judged wrong for this bucket rather than merely inconvenient.
+
+### Addendum, 2026-08-25: the evidence bucket ships suppressed on five checks
+
+P1.5 built the evidence bucket (`terraform/boundary/evidence.tf`) and the commitment above did not
+survive it. "Shipping the evidence bucket compliant rather than suppressed" assumed that holding
+durable data was reason enough to earn every control this ADR's Context section named as blocked on
+the disposable lab buckets. It was not examined against what this particular bucket is: a
+permanent, append-only evidence store whose tamper-evidence comes from the bucket policy's delete
+and reconfiguration denies (`terraform/boundary/bucket-policy.tf`), not from encryption strength,
+replication, access logging, or event notifications.
+
+One of the five is worse than merely unnecessary: `CKV2_AWS_61` wants a lifecycle rule, and a
+lifecycle rule expires objects. This store exists to keep records forever. A lifecycle rule would
+delete the evidence it is built to hold, so compliance and purpose point opposite directions here,
+and purpose wins.
+
+The evidence bucket carries five inline suppressions, each resource-scoped with a written reason
+and judged against the four-condition test in the Decision section above. That test was cited here
+as "Option C's" until 2026-08-25; Option C is the option that was chosen, but the test itself is
+stated in Decision, which is where a reader has to go to check the judgement:
+
+- `CKV_AWS_144` (cross-region replication): single-region lab evidence store, out of scope for R1.
+- `CKV_AWS_145` (KMS encryption): SSE-S3 is the R1 choice; tamper-evidence rests on the bucket
+  policy's delete denies, not on encryption strength, and KMS adds per-request cost with no
+  threat-model benefit here.
+- `CKV_AWS_18` (access logging): deferred; the CloudTrail S3 data-event selector built in P3 is the
+  audit surface for this bucket.
+- `CKV2_AWS_62` (event notifications): arrive in P4, when the remediator subscribes to `approvals/`.
+- `CKV2_AWS_61` (lifecycle policy): none, on purpose, for the reason above.
+
+Annotation count, re-baselined: 20 suppressions are filed, 19 consumed, the dormant `CKV2_AWS_45`
+unchanged from the 2026-06-12 addendum. The expected steady-state is 19 skipped; a run reporting 20
+or 18 is now the signal, in place of the 15/13 pair that addendum named. The 15/14 figures were
+right for the resources that existed on 2026-06-12. What moved them is the evidence bucket's five
+skips, not an error in the earlier count.
 

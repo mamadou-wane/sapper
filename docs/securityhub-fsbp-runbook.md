@@ -4,7 +4,7 @@
 
 T5 enables the second half of the detective layer. AWS Config (T4) records the two lab resource types; Security Hub evaluates security controls against that recorded data, with AWS Foundational Security Best Practices (FSBP) enabled explicitly and Terraform owning the account configuration and the enabled standard.
 
-`aws_securityhub_account` targets Security Hub CSPM (classic), which keeps the project on the ASFF / `Security Hub Findings - Imported` contract the whole runtime path rides on, confirmed in Phase 0 (internal spike record, §1).
+`aws_securityhub_account` targets Security Hub CSPM (classic), which keeps the project on the ASFF / `Security Hub Findings - Imported` contract the whole runtime path rides on. Confirmed against live AWS during the Phase 0 spike, 2026-06-07; the spike record itself is not published.
 
 This sets up the detection work that follows: intentionally misconfigured lab resources producing Security Hub findings.
 
@@ -135,10 +135,12 @@ No changes. Your infrastructure matches the configuration.
 Security Hub is enabled:
 
 ```text
-HubArn: arn:aws:securityhub:us-east-account-id:hub/default
+HubArn: arn:aws:securityhub:us-east-1:<account-id>:hub/default
 AutoEnableControls: true
 ControlFindingGenerator: SECURITY_CONTROL
 ```
+
+The `HubArn` line read `arn:aws:securityhub:us-east-account-id:hub/default` until 2026-08-25: a redaction pass collapsed the region and account segments into one, producing an ARN that cannot exist and cannot be pasted into a command. Re-verified against the live account on 2026-08-25 and rewritten in this file's `<account-id>` convention.
 
 FSBP is enabled and ready:
 
