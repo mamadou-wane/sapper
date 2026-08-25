@@ -133,7 +133,9 @@ jq '[.Findings[]
 
 Expected: one S3.8 entry with `Status = FAILED`, `RecordState = ACTIVE`, `WorkflowStatus = NEW`, and the resource ARN above.
 
-`WorkflowStatus` is recorded to confirm it sits at NEW and is therefore correctly excluded from the handler gates (internal spike record, §7), not used for dedupe. The open-proposal suppressor is the dedupe source of truth; workflow status is explicitly not it. Seeing it reset to NEW on the PASSED-to-FAILED transition is the corroboration that excluding it from the gates was right.
+`WorkflowStatus` is recorded to confirm it sits at NEW and is therefore correctly excluded from the handler gates. AWS resets `Workflow.Status` from NOTIFIED or RESOLVED back to NEW when `Compliance.Status` transitions to FAILED, WARNING, or NOT_AVAILABLE, or when `RecordState` transitions from ARCHIVED to ACTIVE, which is what makes it useless as a positive signal. Observed during the pre-build spike, 2026-06-09; the spike record itself is not published. Seeing it reset to NEW on the PASSED-to-FAILED transition is the corroboration that excluding it from the gates was right.
+
+SUPPRESSED is the one value the reset leaves alone. The proposer handler is not built, so nothing in this runsheet demonstrates how it treats the field; what this observation supports is a design decision in the engineering plan, which is not published: the handler drops a finding whose workflow status is SUPPRESSED, because that value is a human act, and gates on nothing else in the field. That gate is sound only if SUPPRESSED survives the reset, which is the property this step confirms. Dedupe is a separate question with a separate answer. The open-proposal suppressor is the dedupe source of truth; workflow status is explicitly not it.
 
 ## Fixture parity
 
@@ -144,7 +146,7 @@ When proposer fixtures exist, compare the raw Security Hub finding shape against
 - `RecordState`
 - `Resources[0].Id`
 
-At the time of this T8 runsheet, `fixtures/sample-finding-event.json` is not present yet, so fixture parity is a future proposer acceptance check, not a blocker for T8 detection acceptance.
+Re-baselined 2026-08-25: this paragraph deferred the check on the grounds that `fixtures/sample-finding-event.json` did not exist yet. It has existed since 2026-06-25 (commit `2c1a853`), so the deferral was stale for two months and the parity check is runnable now. Run it. It is still not a blocker for T8 detection acceptance, because T8 ends at a confirmed, shaped finding, but a mismatch found here is a proposer bug found before the proposer is written.
 
 ## Latency calculation
 
@@ -230,7 +232,7 @@ Confirm the finding clears. On its next evaluation Security Hub should move the 
 - [ ] S3.8 finding retrieved with `Status = FAILED`, `RecordState = ACTIVE`, `WorkflowStatus = NEW`, on the correct resource ARN.
 - [ ] Raw finding JSON saved (`t8-s3.8-finding-raw.json`).
 - [ ] Raw finding includes the proposer gate fields: `Compliance.SecurityControlId`, `Compliance.Status`, `RecordState`, and `Resources[0].Id`.
-- [ ] Fixture parity deferred until `fixtures/sample-finding-event.json` exists.
+- [ ] Fixture parity run against `fixtures/sample-finding-event.json` (re-baselined 2026-08-25: this line read "deferred until the fixture exists", and the fixture has existed since 2026-06-25).
 - [ ] Detection latency computed from break completed to `FirstObservedAt` and recorded.
 - [ ] Finding still `FAILED ACTIVE` at +12h, +24h, +36h, +48h, or the deviation recorded with its check time.
 - [ ] No remediation or manual fix occurred during the window.
