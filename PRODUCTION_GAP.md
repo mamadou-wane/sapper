@@ -44,6 +44,20 @@ EC2.18 and EC2.19 do not always imply the same revocation set. Treating them as 
 apply a subset and leave the group open while the evidence reads clean. The suppressor's action
 token has to encode the specific revocation set rather than the control pair.
 
+## Incarnation check (Gate 5b)
+
+The proposer's gate chain was designed with a final incarnation gate: compare the finding's
+`AwsS3Bucket.CreatedAt` against the live bucket's `CreationDate` and drop the finding on
+mismatch, so a finding keyed to a deleted-and-recreated bucket cannot ride the old identity.
+Retired from the Release 1 proposer contract on 2026-08-26. S3 does not expose bucket
+`CreationDate` through the scoped live-state read; the only API that returns it is
+`ListBuckets`, which requires `s3:ListAllMyBuckets` on `*`, broader than the proposer role
+should hold. For S3.8 the freshness gate is the authority: it reads the current target's live
+Block Public Access state and only proceeds when the planned remediation is still needed,
+which answers the recreated-bucket case for this control. The comparison returns with any
+control where identity continuity changes the remediation, and lands with its own permission
+ruling.
+
 ## Synthetic demo path
 
 A demo-twin EventBridge rule on a custom source (`sapper.demo`) is designed and deferred. It is
