@@ -20,6 +20,20 @@ code comments, or documents by design; the working agreement agents operate unde
 - Facts about AWS behavior are verified against current vendor documentation before they are
   relied on. A model's recall of an API is treated as a plausible guess.
 
+## Enforcement
+
+The working agreement is enforced by machine, locally. A Claude Code configuration
+(.claude/, untracked) denies agents terraform apply, terraform destroy, make deploy, and
+make destroy. It blocks reads of state files and .env, blocks edits under evidence/, and
+prompts on every git commit and git push. A PreToolUse hook catches those same commands
+when they arrive through a wrapper (make, -chdir) and refuses pushes to main. That
+refusal was verified live on 2026-08-25.
+
+The config was tracked in the repo until 2026-08-26. PR #20 moved it out to sit with the
+rest of the untracked working layer, so a fresh clone has to restore it before agents
+run. On the GitHub side, an active push ruleset on main and PR-only merges apply
+regardless of local state.
+
 ## Agent Usage
 
 | Area | Typical Use | Human Role |
