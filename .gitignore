@@ -96,3 +96,11 @@ docs/p15-consistency-audit.html
 .venv/
 .venv-checkov312/
 .gstack/
+.claude/
+
+# Python build and tool artifacts
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

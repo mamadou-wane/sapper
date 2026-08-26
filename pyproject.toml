@@ -1,0 +1,39 @@
+[project]
+name = "sapper"
+version = "0.1.0"
+description = "Human-gated cloud remediation lab: detect, propose, approve, remediate on AWS."
+requires-python = "==3.12.*"
+# Pinned explicitly rather than inherited from the Lambda runtime: AWS does not
+# guarantee the bundled SDK version, and the create-only primitive depends on a
+# botocore new enough to send If-None-Match (PLAN.md §12).
+dependencies = [
+    "boto3==1.43.80",
+    "botocore==1.43.80",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "moto[s3]==5.2.3",
+    "ruff==0.16.4",
+    "mypy==2.3.1",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]

@@ -31,10 +31,10 @@ help: ## Show this help
 		| sort \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Real today: setup-scan, fmt, validate, scan, plan, deploy, destroy,"
-	@echo "            boundary-init, boundary-plan, boundary-apply, boundary-probe."
+	@echo "Real today: setup-scan, setup-test, fmt, validate, scan, test, plan, deploy,"
+	@echo "            destroy, boundary-init, boundary-plan, boundary-apply, boundary-probe."
 	@echo "Not built yet (honest stubs): remediate, rollback, verify-boundary, demo."
-	@echo "No AWS credentials needed: setup-scan, fmt, validate, scan."
+	@echo "No AWS credentials needed: setup-scan, setup-test, fmt, validate, scan, test."
 	@echo ""
 	@echo "Lifecycle: deploy/destroy operate on terraform/ only. terraform/boundary/"
 	@echo "and terraform/bootstrap/ are persistent and hand-applied; destroy cannot"
@@ -63,6 +63,25 @@ setup-scan: ## Create the pinned Python 3.12 venv the Checkov scan requires
 	@echo "Scanner venv ready. Run 'make scan' and check the summary line: a result"
 	@echo "with 0 skipped means the graph framework did not load and the scan is"
 	@echo "silently degraded (ADR-0002). Parity is read from the summary, not --version."
+
+# The project venv is gitignored, so a fresh clone has no ./.venv. Same seam as
+# setup-scan: without this target, `make test` fails on a clean checkout.
+.PHONY: setup-test
+setup-test: ## Create the Python 3.12 venv and install sapper with dev dependencies
+	@command -v python3.12 >/dev/null 2>&1 || { \
+		echo "python3.12 not found. PLAN.md §12 pins the package to the Lambda"; \
+		echo "runtime version and the Checkov parity line (ADR-0002). Install it first."; \
+		exit 1; \
+	}
+	python3.12 -m venv .venv
+	./.venv/bin/pip install --quiet --upgrade pip
+	./.venv/bin/pip install --quiet -e '.[dev]'
+
+.PHONY: test
+test: ## Run pytest, ruff, and mypy on src/ (parity-locked to CI)
+	./.venv/bin/pytest
+	./.venv/bin/ruff check src tests
+	./.venv/bin/mypy
 
 .PHONY: fmt
 fmt: ## Check Terraform formatting (non-mutating; matches CI)
