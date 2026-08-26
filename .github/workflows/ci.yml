@@ -51,3 +51,22 @@ jobs:
           which checkov
           checkov --version
           checkov -d terraform --skip-path terraform/bootstrap
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Create the test venv
+        run: make setup-test
+
+      - name: Run the Python gate
+        run: make test
