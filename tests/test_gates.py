@@ -1,5 +1,5 @@
 """The field gates (§3, Gates 0-4 plus the suppressed drop): evaluated in order,
-short-circuit on first drop, no AWS call. The live-state gates (5, 5b) are tested
+short-circuit on first drop, no AWS call. Gate 5, the live-state read, is tested
 separately with moto."""
 
 from typing import Any

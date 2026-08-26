@@ -1,7 +1,6 @@
 """findings.py is the one place raw ASFF is read; everything downstream consumes
 the parsed shape. These tests pin the contract to the banked fixture."""
 
-from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -25,20 +24,18 @@ def test_parses_the_banked_fixture(raw_finding: dict[str, Any]) -> None:
     assert finding.region == "us-east-1"
     assert finding.resource_arn == "arn:aws:s3:::sapper-lab-public-116137268889"
     assert finding.resource_type == "AwsS3Bucket"
-    assert finding.bucket_created_at == datetime(2026, 6, 25, 23, 48, 49, tzinfo=UTC)
     assert finding.updated_at == "2026-06-26T01:22:15.937Z"
 
 
-def test_missing_resource_details_parses_with_unverifiable_created_at(
-    raw_finding: dict[str, Any],
-) -> None:
-    # AWS strips Resource.Details from findings above 240 KB (PLAN.md §3, Gate 5b):
-    # absent Details is unverifiable, not malformed.
+def test_missing_resource_details_still_parses(raw_finding: dict[str, Any]) -> None:
+    # AWS strips Resource.Details from findings above 240 KB: absent Details is
+    # normal, not malformed. Nothing in the parsed shape depends on it (Gate 5b
+    # retired 2026-08-26; PRODUCTION_GAP.md).
     del raw_finding["Resources"][0]["Details"]
 
     finding = parse_finding(raw_finding)
 
-    assert finding.bucket_created_at is None
+    assert finding.resource_arn == "arn:aws:s3:::sapper-lab-public-116137268889"
 
 
 def test_missing_workflow_block_parses_with_none_status(raw_finding: dict[str, Any]) -> None:

@@ -1,8 +1,9 @@
 """The hardened gate chain, field half (PLAN.md §3): Gates 0-4 plus the
 suppressed drop, evaluated in order with short-circuit on first drop.
 
-Cheap field checks only. The live-state gates (5, 5b) make the one AWS call and
-live in their own function so these stay pure and fast.
+Cheap field checks only. Gate 5, the live-state read, makes the one AWS call and
+lives in its own function so these stay pure and fast. Gate 5b (incarnation) was
+retired from the R1 contract 2026-08-26; PRODUCTION_GAP.md records why.
 """
 
 from dataclasses import dataclass
@@ -28,7 +29,6 @@ class DropReason(Enum):
     RECORD_STATE = "RECORD_STATE"
     SCOPE = "SCOPE"
     STALE_FINDING = "STALE_FINDING"
-    STALE_INCARNATION = "STALE_INCARNATION"
 
 
 @dataclass(frozen=True)

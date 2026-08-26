@@ -6,7 +6,6 @@ fixtures/sample-finding-event.json).
 """
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 
@@ -26,7 +25,6 @@ class Finding:
     region: str
     resource_arn: str
     resource_type: str
-    bucket_created_at: datetime | None
     updated_at: str
 
 
@@ -36,10 +34,6 @@ def parse_finding(raw: dict[str, Any]) -> Finding:
         if not resources:
             raise FindingParseError("Resources is empty")
         resource = resources[0]
-        # AWS strips Resource.Details above 240 KB: absent means unverifiable,
-        # not malformed (PLAN.md §3, Gate 5b).
-        bucket_details = resource.get("Details", {}).get("AwsS3Bucket", {})
-        created_at_raw = bucket_details.get("CreatedAt")
         return Finding(
             finding_id=raw["Id"],
             product_arn=raw["ProductArn"],
@@ -51,7 +45,6 @@ def parse_finding(raw: dict[str, Any]) -> Finding:
             region=raw["Region"],
             resource_arn=resource["Id"],
             resource_type=resource["Type"],
-            bucket_created_at=datetime.fromisoformat(created_at_raw) if created_at_raw else None,
             updated_at=raw["UpdatedAt"],
         )
     except (KeyError, IndexError, TypeError, AttributeError, ValueError) as exc:
