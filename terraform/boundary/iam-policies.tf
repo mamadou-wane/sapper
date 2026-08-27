@@ -44,6 +44,18 @@ data "aws_iam_policy_document" "proposer" {
     }
   }
 
+  # §4's 412 path decides lease expiry by reading the lock object's body; S3
+  # lifecycle cannot decide it, because deletion is asynchronous and an expired
+  # object still reads. The first build granted the write and the list but no
+  # read, so that path could never run. Ruled R-A, 2026-08-26: read the locks
+  # prefix and nothing else. proposals/* and approvals/* stay unreadable.
+  statement {
+    sid       = "ReadItsOwnLocks"
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.evidence.arn}/locks/*"]
+  }
+
   # Scoped to the proposer's own write set. PLAN.md §7 said "prefix-scoped"
   # without naming the prefixes, so the first build shipped this grant unscoped
   # and the proposer could list every key in the store, including approvals/.
