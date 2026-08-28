@@ -48,12 +48,14 @@ def test_drifted_bucket_passes_with_before_state(
 
     result = evaluate_freshness_gate(parse_finding(raw_finding), s3_client)
 
+    # Key names follow the §6b record contract exactly: the four flags carry the
+    # AWS response casing, configuration_present is ours.
     assert result.before_state == {
         "configuration_present": True,
-        "block_public_acls": True,
-        "ignore_public_acls": True,
-        "block_public_policy": True,
-        "restrict_public_buckets": False,
+        "BlockPublicAcls": True,
+        "IgnorePublicAcls": True,
+        "BlockPublicPolicy": True,
+        "RestrictPublicBuckets": False,
     }
 
 
@@ -83,10 +85,10 @@ def test_absent_bpa_configuration_is_the_drifted_state(
 
     assert result.before_state == {
         "configuration_present": False,
-        "block_public_acls": False,
-        "ignore_public_acls": False,
-        "block_public_policy": False,
-        "restrict_public_buckets": False,
+        "BlockPublicAcls": False,
+        "IgnorePublicAcls": False,
+        "BlockPublicPolicy": False,
+        "RestrictPublicBuckets": False,
     }
 
 
@@ -94,3 +96,31 @@ def test_pass_result_carries_no_drop(raw_finding: dict[str, Any], s3_client: Any
     result = evaluate_freshness_gate(parse_finding(raw_finding), s3_client)
 
     assert result.drop is None
+
+
+class PartialBpaStub:
+    """The four flags are boxed (optional) in the service model, but moto always
+    materializes all four; a minimal stub is the only way to provoke a real
+    partial response (F5)."""
+
+    def get_public_access_block(self, Bucket: str) -> dict[str, Any]:
+        return {
+            "PublicAccessBlockConfiguration": {
+                "BlockPublicAcls": True,
+                "IgnorePublicAcls": True,
+            }
+        }
+
+
+def test_partial_bpa_response_defaults_missing_flags_to_false(
+    raw_finding: dict[str, Any],
+) -> None:
+    result = evaluate_freshness_gate(parse_finding(raw_finding), PartialBpaStub())
+
+    assert result.before_state == {
+        "configuration_present": True,
+        "BlockPublicAcls": True,
+        "IgnorePublicAcls": True,
+        "BlockPublicPolicy": False,
+        "RestrictPublicBuckets": False,
+    }
