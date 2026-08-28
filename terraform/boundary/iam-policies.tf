@@ -63,6 +63,13 @@ data "aws_iam_policy_document" "proposer" {
   #
   # This change post-dates the banked probe run. No capture is invalidated: the
   # probe never calls ListBucket.
+  #
+  # applied/* added 2026-08-28 for the generation-chain lock (§4, ruled
+  # 2026-08-27): reclaiming an incident is permitted once its proposal is
+  # applied. The grant is the whole applied/ prefix, because IAM cannot scope
+  # a list to one key; the use is one key per reclamation,
+  # applied/<proposal-id>.json, derived from the proposal id in the lock body
+  # the proposer just read. List only; no s3:GetObject widens with it.
   statement {
     sid       = "ListItsOwnPrefixes"
     effect    = "Allow"
@@ -72,7 +79,7 @@ data "aws_iam_policy_document" "proposer" {
     condition {
       test     = "StringLike"
       variable = "s3:prefix"
-      values   = ["proposals/*", "locks/*"]
+      values   = ["proposals/*", "locks/*", "applied/*"]
     }
   }
 
