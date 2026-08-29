@@ -16,8 +16,12 @@ from moto import mock_aws
 from sapper.findings import parse_finding
 from sapper.plan import build_plan, plan_sha256
 from sapper.proposal import (
+    TIMESTAMP_FORMAT,
+    applied_key,
     build_proposal,
     new_ulid,
+    normalize_resource_arn,
+    proposal_expires_at_of,
     proposal_id,
     proposal_key,
     proposal_key_of,
@@ -186,7 +190,54 @@ def test_write_proposal_is_create_only() -> None:
         )
         assert body == record
 
-        # A second write to the same key is a failure of the lease invariant, not
+        # A second write to the same key is a failure of the claim invariant, not
         # a normal drop: it must raise so the on-failure path catches it.
         with pytest.raises(ClientError):
             write_proposal(s3, "evidence", record)
+
+
+def test_normalize_resource_arn_returns_the_canonical_bucket_arn_unchanged() -> None:
+    # R-D, ruled 2026-08-28: one helper feeds both resource_key and the lock
+    # digest. For R1 the S3 bucket ARN has nothing to fold, so the banked
+    # generation 0 key must survive it untouched.
+    assert normalize_resource_arn(LAB_ARN) == LAB_ARN
+
+
+@pytest.mark.parametrize(
+    "arn",
+    [
+        "arn:aws:ec2:us-east-1:116137268889:security-group/sg-0123",
+        "arn:aws:s3:::",
+        "arn:aws:s3:::sapper-lab-public-116137268889/some-object",
+        "sapper-lab-public-116137268889",
+    ],
+)
+def test_normalize_resource_arn_rejects_anything_but_a_bucket_arn(arn: str) -> None:
+    with pytest.raises(ValueError):
+        normalize_resource_arn(arn)
+
+
+def test_applied_key_matches_the_template() -> None:
+    assert applied_key("OGYxLi4u") == "applied/OGYxLi4u.json"
+
+
+def test_proposal_expires_at_of_equals_the_record_field(raw_finding: dict[str, Any]) -> None:
+    # The suppressor derives expiry from the ULID without reading the record
+    # (the proposer holds no GetObject on proposals/*), so the two must agree.
+    record = build(raw_finding, build_plan(LAB_ARN), now=NOW.replace(microsecond=789_000))
+
+    derived = proposal_expires_at_of(record["proposal_id"])
+
+    assert derived == datetime.strptime(record["proposal_expires_at"], TIMESTAMP_FORMAT).replace(
+        tzinfo=UTC
+    )
+
+
+def test_new_ulid_pads_epoch_milliseconds_to_13_digits() -> None:
+    # 2001-09-08 has a 12-digit epoch-millisecond value; 13 digits begin
+    # 2001-09-09T01:46:40Z.
+    twelve_digit_epoch = datetime(2001, 9, 8, tzinfo=UTC)
+
+    ulid = new_ulid(twelve_digit_epoch)
+
+    assert re.fullmatch(r"0\d{12}-[0-9a-f]{32}", ulid)

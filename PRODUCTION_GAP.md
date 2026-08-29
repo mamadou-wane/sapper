@@ -58,6 +58,20 @@ which answers the recreated-bucket case for this control. The comparison returns
 control where identity continuity changes the remediation, and lands with its own permission
 ruling.
 
+## Consumed without applied
+
+The remediator claims an approval by writing `consumed/<proposal-id>` and then applies the fix and
+writes `applied/<proposal-id>.json`. If it dies between the two writes, the proposal is neither
+open nor applied, and the proposer cannot tell: its list grant covers `proposals/`, `locks/`, and
+`applied/`, never `consumed/`. The proposer reads the proposal as open and suppresses every finding
+for that incident until `proposal_expires_at`, up to 72 hours, while the bucket stays public. The
+crash itself alarms through the remediator's on-failure destination; what is missing is any way for
+the proposer to see `consumed/`, and no principal but the bounded role can write the `applied/`
+marker that would release the suppression, so the only release before `proposal_expires_at` is an
+administrator's delete of the top lock generation. Recorded 2026-08-28 when the generation-chain lock was ruled; the ruling
+excluded it. A `consumed/` list grant for the proposer is the likely fix, and it lands with its own
+permission ruling.
+
 ## Synthetic demo path
 
 A demo-twin EventBridge rule on a custom source (`sapper.demo`) is designed and deferred. It is

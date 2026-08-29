@@ -181,12 +181,13 @@ rollback: ## [NOT BUILT] P4: restore the captured before_state for a proposal, w
 	@echo "approval boundary gates, and the rollback is evidenced."
 
 .PHONY: verify-boundary
-verify-boundary: ## [NOT BUILT] P5: run the 8 negative IAM tests, capture each AccessDenied
+verify-boundary: ## [NOT BUILT] P5: run the 9 negative IAM tests, capture each AccessDenied
 	@echo "verify-boundary: not built yet."
-	@echo "P5 will: attempt eight forbidden actions and capture each AccessDenied as a"
+	@echo "P5 will: attempt nine forbidden actions and capture each AccessDenied as a"
 	@echo "committed artifact. Proposer: target mutation, approval write, Security Hub"
-	@echo "write, sts:AssumeRole. Remediator: approval write, delete of a consumed marker."
-	@echo "Approver: target mutation, sts:AssumeRole on the bounded role."
+	@echo "write, sts:AssumeRole, ListBucket on approvals/. Remediator: approval write,"
+	@echo "delete of a consumed marker. Approver: target mutation, sts:AssumeRole on the"
+	@echo "bounded role."
 	@echo "Each is paired with a positive control in the same run, so a denial cannot be"
 	@echo "confused with a broken credential. The account administrator defeats all of"
 	@echo "this and is out of scope: see the threat model in PRODUCTION_GAP.md."
