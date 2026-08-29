@@ -87,3 +87,31 @@ or 18 is now the signal, in place of the 15/13 pair that addendum named. The 15/
 right for the resources that existed on 2026-06-12. What moved them is the evidence bucket's five
 skips, not an error in the earlier count.
 
+
+### Addendum, 2026-08-28: the proposer function ships suppressed on seven checks
+
+P2 built the proposer Lambda and its log group in `terraform/proposer.tf`. Seven checks are
+suppressed inline, each judged against the four-condition test in Decision, and one is met
+rather than suppressed:
+
+- `CKV_AWS_50` (X-Ray tracing): out of scope for a single-function lab; the structured line the
+  handler writes per finding is the trace.
+- `CKV_AWS_116` (dead-letter queue): the failure path is an async on-failure destination, an
+  event-invoke config rather than a `dead_letter_config`, and it lands in P3 (`PLAN.md` §9).
+- `CKV_AWS_117` (VPC): the function reaches S3 only; the lab has no VPC resources.
+- `CKV_AWS_173` (environment-variable KMS key): the environment carries a bucket name, a bucket
+  ARN, and two integers.
+- `CKV_AWS_272` (code signing): out of scope for a lab deployed from a pinned, locally built tree.
+- `CKV_AWS_158` (log-group KMS key): the logs carry finding ids, drop reasons, and the PROVENANCE
+  metric line, no secrets.
+- `CKV_AWS_338` (one-year log retention): 30 days, ruled 2026-08-28; the stack is torn down
+  between evidence windows and the banked evidence lives in the repo.
+
+`CKV_AWS_115` (function-level concurrency limit) is satisfied by `reserved_concurrent_executions`
+rather than suppressed, ruled 2026-08-28: a concurrency cap is a real blast-radius control on a rule
+that fires per finding, and a suppression would have hidden the absence of one.
+
+Annotation count, re-baselined from the scan: 27 suppressions are filed, 26 consumed, the dormant
+`CKV2_AWS_45` unchanged. The expected steady-state is 26 skipped (181 passed, 0 failed on
+2026-08-28); a run reporting 27 or 25 is now the signal, in place of the 20/18 pair the 2026-08-25
+addendum named.

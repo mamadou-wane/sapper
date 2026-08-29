@@ -1,0 +1,12 @@
+# The proposer's runtime set, fully pinned and installed with --no-deps against
+# the Lambda target (PLAN.md §12), so the deployment tree does not depend on
+# the workstation that builds it. boto3 and botocore are the pins in
+# pyproject.toml; the rest are their transitive closure, frozen 2026-08-28.
+# Regenerate from ./.venv/bin/pip freeze after a deliberate bump of the pins.
+boto3==1.43.80
+botocore==1.43.80
+jmespath==1.1.0
+python-dateutil==2.9.0.post0
+s3transfer==0.19.2
+six==1.17.0
+urllib3==2.7.0

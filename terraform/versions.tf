@@ -6,6 +6,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    # Zips the proposer tree that make package builds (PLAN.md §12).
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.7"
+    }
   }
 
   # D2: Phase 1 root state key. Bootstrap remains local.

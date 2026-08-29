@@ -31,8 +31,9 @@ help: ## Show this help
 		| sort \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Real today: setup-scan, setup-test, fmt, validate, scan, test, plan, deploy,"
-	@echo "            destroy, boundary-init, boundary-plan, boundary-apply, boundary-probe."
+	@echo "Real today: setup-scan, setup-test, fmt, validate, scan, test, package, plan,"
+	@echo "            deploy, destroy, boundary-init, boundary-plan, boundary-apply,"
+	@echo "            boundary-probe."
 	@echo "Not built yet (honest stubs): remediate, rollback, verify-boundary, demo."
 	@echo "No AWS credentials needed: setup-scan, setup-test, fmt, validate, scan, test."
 	@echo ""
@@ -98,11 +99,42 @@ validate: ## Validate Terraform configuration offline
 scan: ## Run the Checkov guardrail scan (parity-locked to CI; Python 3.12)
 	$(CHECKOV)
 
+# ---------------------------------------------------------------------------
+# Proposer packaging (PLAN.md §12): a zip from pip install --target against the
+# fully pinned set, resolved for the Lambda target rather than for this machine,
+# plus the sapper source copied in as is (no build backend, nothing to resolve),
+# so the tree is the same from any workstation. Terraform's archive_file zips
+# it at plan time, which is why plan and deploy build it first.
+# ---------------------------------------------------------------------------
+
+PIP             := ./.venv/bin/pip
+PROPOSER_BUILD  := build/proposer
+LAMBDA_PYTHON   := 3.12
+LAMBDA_PLATFORM := manylinux2014_x86_64
+
+.PHONY: package
+package: ## Build the proposer deployment tree from the pinned set for the Lambda target
+	@test -x $(PIP) || { \
+		echo "$(PIP) not found. The package is built by the pinned 3.12 venv;"; \
+		echo "run make setup-test first."; \
+		exit 1; \
+	}
+	rm -rf $(PROPOSER_BUILD)
+	$(PIP) install --quiet --no-deps --no-compile --target $(PROPOSER_BUILD) \
+	  --platform $(LAMBDA_PLATFORM) --only-binary=:all: \
+	  --python-version $(LAMBDA_PYTHON) --implementation cp \
+	  -r requirements-lambda.txt
+	cp -R src/sapper $(PROPOSER_BUILD)/sapper
+	find $(PROPOSER_BUILD) -name __pycache__ -type d -prune -exec rm -rf {} +
+	./.venv/bin/python -B -c "import sys; sys.path.insert(0, '$(PROPOSER_BUILD)'); import sapper.handler"
+
 .PHONY: plan
-plan: ## Show the Terraform execution plan
+plan: package
+plan: ## Show the Terraform execution plan (builds the proposer package first)
 	$(TF) plan
 
 .PHONY: deploy
+deploy: package
 deploy: ## Apply Terraform: lab resources + detective services (NOT bootstrap)
 	@echo ">> Standing order: scan before apply."
 	$(CHECKOV)
