@@ -2,6 +2,8 @@ data "aws_caller_identity" "current" {}
 
 data "aws_partition" "current" {}
 
+data "aws_region" "current" {}
+
 # The Identity Center permission-set role carries a generated suffix that changes
 # if the permission set is deleted and re-provisioned, so it is resolved rather
 # than typed.
@@ -47,4 +49,9 @@ locals {
   lab_bucket_arns = [
     "arn:${local.partition}:s3:::sapper-lab-public-${local.account_id}",
   ]
+
+  # The proposer function's log group, created by the main stack alongside the
+  # function (PLAN.md §12) under Lambda's fixed naming rule, so the ARN is
+  # constructed here for the same reason the lab bucket ARN is.
+  proposer_log_group_arn = "arn:${local.partition}:logs:${data.aws_region.current.region}:${local.account_id}:log-group:/aws/lambda/sapper-proposer"
 }
