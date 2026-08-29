@@ -4,6 +4,10 @@ suppressed drop, evaluated in order with short-circuit on first drop.
 Cheap field checks only. Gate 5, the live-state read, makes the one AWS call and
 lives in its own function so these stay pure and fast. Gate 5b (incarnation) was
 retired from the R1 contract 2026-08-26; PRODUCTION_GAP.md records why.
+
+DropReason is the whole drop vocabulary, not only the gates': the suppressor's
+two reasons and the handler's UNPARSEABLE and PLAN_UNRENDERABLE live here too,
+so every structured log line names its reason from one enum.
 """
 
 from dataclasses import dataclass
@@ -31,6 +35,8 @@ class DropReason(Enum):
     STALE_FINDING = "STALE_FINDING"
     SUPPRESSED_DUPLICATE = "SUPPRESSED_DUPLICATE"
     CLAIM_CONTENTION = "CLAIM_CONTENTION"
+    UNPARSEABLE = "UNPARSEABLE"
+    PLAN_UNRENDERABLE = "PLAN_UNRENDERABLE"
 
 
 @dataclass(frozen=True)
