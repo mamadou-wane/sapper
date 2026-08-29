@@ -3,8 +3,7 @@
 The canonicalizer is a security control rather than a formatter: the hashed
 bytes are the bytes the operator reads at approval time (§5), so any string
 that could render differently from how it hashes is rejected. The proposer
-drops PLAN_UNRENDERABLE on rejection (the handler and its DropReason land in
-PR 4); the P4 CLI refuses the same plans.
+drops PLAN_UNRENDERABLE on rejection; the P4 CLI refuses the same plans.
 """
 
 import hashlib
