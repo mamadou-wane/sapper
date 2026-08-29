@@ -83,12 +83,17 @@ def evaluate_freshness_gate(finding: Finding, s3_client: "S3Client") -> Freshnes
         flags = s3_client.get_public_access_block(Bucket=bucket_name)[
             "PublicAccessBlockConfiguration"
         ]
+        # Key names follow the §6b record contract: the four flags keep the AWS
+        # response casing, configuration_present is ours. Each flag is boxed
+        # (optional) in the service model, so a stored config can omit any of
+        # them; absent means not blocking, the same semantic as the
+        # absent-configuration branch below.
         before_state = {
             "configuration_present": True,
-            "block_public_acls": flags["BlockPublicAcls"],
-            "ignore_public_acls": flags["IgnorePublicAcls"],
-            "block_public_policy": flags["BlockPublicPolicy"],
-            "restrict_public_buckets": flags["RestrictPublicBuckets"],
+            "BlockPublicAcls": flags.get("BlockPublicAcls", False),
+            "IgnorePublicAcls": flags.get("IgnorePublicAcls", False),
+            "BlockPublicPolicy": flags.get("BlockPublicPolicy", False),
+            "RestrictPublicBuckets": flags.get("RestrictPublicBuckets", False),
         }
     except ClientError as exc:
         # Raised when no BPA configuration exists at all, which is precisely a
@@ -98,16 +103,16 @@ def evaluate_freshness_gate(finding: Finding, s3_client: "S3Client") -> Freshnes
             raise
         before_state = {
             "configuration_present": False,
-            "block_public_acls": False,
-            "ignore_public_acls": False,
-            "block_public_policy": False,
-            "restrict_public_buckets": False,
+            "BlockPublicAcls": False,
+            "IgnorePublicAcls": False,
+            "BlockPublicPolicy": False,
+            "RestrictPublicBuckets": False,
         }
     flag_names = (
-        "block_public_acls",
-        "ignore_public_acls",
-        "block_public_policy",
-        "restrict_public_buckets",
+        "BlockPublicAcls",
+        "IgnorePublicAcls",
+        "BlockPublicPolicy",
+        "RestrictPublicBuckets",
     )
     if all(before_state[name] for name in flag_names):
         return FreshnessResult(
