@@ -6,8 +6,7 @@
 # action. The explicit deny is what keeps the bound provable against a future
 # policy addition, and what P5 tests.
 #
-# Deferred, each owned by the slice that creates the resource:
-#   P2: logs:CreateLogStream, logs:PutLogEvents on its own log group
+# Deferred, owned by the slice that creates the resource:
 #   P3: sqs:SendMessage to sapper-proposer-failures
 # ---------------------------------------------------------------------------
 
@@ -81,6 +80,20 @@ data "aws_iam_policy_document" "proposer" {
       variable = "s3:prefix"
       values   = ["proposals/*", "locks/*", "applied/*"]
     }
+  }
+
+  # The function's own log group and nothing else (PLAN.md §7 allow set). No
+  # logs:CreateLogGroup: the main stack creates the group so make destroy
+  # removes it, and a function that could create groups would leave the
+  # residue §10 names.
+  statement {
+    sid    = "WriteItsOwnLogs"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+    resources = ["${local.proposer_log_group_arn}:*"]
   }
 
   statement {
