@@ -43,7 +43,8 @@ data "aws_iam_policy_document" "proposer" {
     }
   }
 
-  # §4's 412 path decides lease expiry by reading the lock object's body; S3
+  # §4's 412 path decides claim expiry by reading the lock body (amended
+  # 2026-08-28: the claim, not a lease tied to the proposal); S3
   # lifecycle cannot decide it, because deletion is asynchronous and an expired
   # object still reads. The first build granted the write and the list but no
   # read, so that path could never run. Ruled R-A, 2026-08-26: read the locks

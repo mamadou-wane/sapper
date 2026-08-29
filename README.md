@@ -8,8 +8,11 @@ A sapper is a combat engineer who clears hazards and breaches obstacles, but kno
 
 ## Current Status
 
-**Status 2026-08-25:** Release 1 (Security Core) in progress. The detection foundation and the
-approval boundary are built and proven against live AWS; next is P2, the proposer.
+**Status 2026-08-28:** Release 1 (Security Core) in progress. The detection foundation and the
+approval boundary are built and proven against live AWS, and the proposer (P2) is code-complete:
+the handler, its gate chain, the generation-chain suppressor, the PENDING record, and the Lambda
+wiring, all tested against moto. Its live run waits for the next evidence window. Next is P3, the
+records and integrity layer.
 
 - De-risked the live Security Hub contract with real findings (S3.8/S3.9 for public buckets, EC2.18/EC2.19 for open security groups).
 - Built the detective layer in Terraform (scoped AWS Config recorder + Security Hub with FSBP standard).
@@ -26,9 +29,17 @@ credential succeeding in its own prefix, and `make destroy` removed the detectiv
 evidence bucket and all four roles survived. Those pairings matter: a denial only proves a
 boundary if the same credential succeeds somewhere it should.
 
-Mocked AWS cannot evaluate bucket policies, which is why this proof ran first and ran live. Next:
-the proposer Lambda, the records and integrity layer, the approval CLI and bounded remediation
-role, and the negative IAM suite.
+Mocked AWS cannot evaluate bucket policies, which is why this proof ran first and ran live.
+
+The proposer landed 2026-08-28 in a series of small PRs (#20 through #33): an ASFF parser that is
+the one place raw findings are read, a gate chain that drops with a named reason and makes one
+AWS call last, a suppressor whose lock is a chain of create-only generations so a crashed
+invocation can be reclaimed without a race, a proposal record the approver later signs, a
+PROVENANCE metric emitted through the function's own logs, and the function itself with its
+EventBridge target. 113 tests run in CI. The proposer role's live policy is written up in
+[docs/p2-proposer-role-verification.md](./docs/p2-proposer-role-verification.md). Next: the
+records and integrity layer, the approval CLI and bounded remediation role, and the negative IAM
+suite.
 
 ## Architecture (Release 1)
 
@@ -75,13 +86,17 @@ make setup-scan   # create the pinned Python 3.12 venv used by the scanner
 make fmt          # terraform fmt -check (matches CI)
 make validate     # offline terraform validate (no AWS credentials needed)
 make scan         # Checkov guardrail scan (parity-locked to CI)
+make setup-test   # create the Python 3.12 venv with sapper and its dev dependencies
+make test         # pytest, ruff, and mypy (parity-locked to CI)
+make package      # build the proposer deployment tree from the pinned set
 make help         # every target, and which ones are not built yet
 ```
 
 With AWS credentials and the backend pointed at your own bucket:
 
 ```bash
-make deploy       # stand up lab + detective stack (scans first)
+make plan         # terraform plan (builds the proposer package first)
+make deploy       # stand up lab + detective stack + proposer (packages and scans first)
 make destroy      # tear down lab + detective services (guarded; never touches state)
 ```
 
@@ -94,6 +109,7 @@ will do. `make help` labels them `[NOT BUILT]`. They are not silently broken: th
 - [Evidence](./evidence)
 - [Cost](./COST.md)
 - [Production Gap](./PRODUCTION_GAP.md)
+- [Proposer role, verified against the plan](./docs/p2-proposer-role-verification.md)
 - [License](./LICENSE) (Apache-2.0)
 
 ## About
